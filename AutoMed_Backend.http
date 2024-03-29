@@ -1,0 +1,6 @@
+@AutoMed_Backend_HostAddress = http://localhost:5041
+
+GET {{AutoMed_Backend_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
