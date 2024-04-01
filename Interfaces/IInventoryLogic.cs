@@ -1,9 +1,11 @@
-﻿namespace AutoMed_Backend.Interfaces
+﻿using AutoMed_Backend.Models;
+
+namespace AutoMed_Backend.Interfaces
 {
     public interface IInventoryLogic
     {
-        public void PlaceOrder(string name, int qty);
-        public void GetInventoryDetails();
+        public void PlaceOrder(Dictionary<Medicine, int> orders);
+        public Task<Dictionary<Medicine, int>> GetInventoryDetails();
         public decimal GetCashBalance();
         public decimal GetTotalSales();
     }

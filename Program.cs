@@ -1,9 +1,52 @@
+using AutoMed_Backend;
+using AutoMed_Backend.Models;
+using AutoMed_Backend.Repositories;
+using AutoMed_Backend.SecurityInfra;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
+
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
+builder.Services.AddDbContext<StoreDbContext>(options =>
+{
+    options.UseSqlServer(builder.Configuration.GetConnectionString("AutoMed"));
+});
 
-builder.Services.AddControllers();
-// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
+builder.Services.AddDbContext<AppSecurityDbContext>(option => 
+{
+    option.UseSqlServer(builder.Configuration.GetConnectionString("AutoMedSecurity"));    
+});
+
+
+builder.Services.AddIdentity<IdentityUser, IdentityRole>()
+    .AddEntityFrameworkStores<AppSecurityDbContext>();
+
+IServiceProvider serviceProvider = builder.Services.BuildServiceProvider();
+await SuperAdminAssign.CreateApplicationAdministrator(serviceProvider);
+
+
+builder.Services.AddTransient<SecurityManagement>();
+builder.Services.AddScoped<AdminLogic>();
+builder.Services.AddScoped<CustomerLogic>();
+
+
+// Add services to the container.
+builder.Services.AddControllers()
+    .AddJsonOptions(options =>
+    {
+        options.JsonSerializerOptions.PropertyNamingPolicy = null;
+    });
+
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("cors", policy =>
+    {
+        // Allowing any browser client to access the API
+        policy.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader();
+    });
+});
+
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
@@ -17,6 +60,8 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+
+app.UseCors("cors");
 
 app.UseAuthorization();
 

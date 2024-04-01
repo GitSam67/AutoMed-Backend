@@ -4,8 +4,9 @@ namespace AutoMed_Backend.Interfaces
 {
     public interface IMedicineLogic
     {
-        public void AddMedicine(Medicine med);
-        public Task<Medicine> UpdateMedicine(int id, Medicine med);
-        public void RemoveMedicine(int id);
+        public Task<CollectionResponse<Medicine>> GetMedicinesList();
+        public Task<SingleObjectResponse<Medicine>> AddMedicine(Medicine med);
+        public Task<SingleObjectResponse<Medicine>> UpdateMedicine(int id, Medicine med);
+        public Task<SingleObjectResponse<Medicine>> RemoveMedicine(int id);
     }
 }

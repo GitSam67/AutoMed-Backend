@@ -6,9 +6,7 @@ namespace AutoMed_Backend.Models
     {
         [Key]
         public int OrderId { get; set; }
-        [Required]
         public int CustomerId { get; set; }
-        [Required]
 
         public ICollection<Medicine> Medicines { get; set; } = new List<Medicine>();
 
@@ -16,7 +14,6 @@ namespace AutoMed_Backend.Models
 
         public decimal? TotalBill { get; set; }
         
-        [Required]
         public int BranchId { get; set; }
     }
 }

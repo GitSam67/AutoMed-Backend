@@ -4,8 +4,8 @@ namespace AutoMed_Backend.Interfaces
 {
     public interface ICustomerLogic
     {
-        public void AddCustomer(Customer c);
+        public Task<SingleObjectResponse<Customer>> AddCustomer(Customer c);
         public Task<decimal> GenerateMedicalBill(Customer c, Dictionary<string, int> orders, decimal claim);
-        public void ExecuteOrder(Dictionary<string, int> orders, decimal bill);
+        public void ExecuteOrder(Customer c, Dictionary<string, int> orders, decimal bill);
     }
 }
