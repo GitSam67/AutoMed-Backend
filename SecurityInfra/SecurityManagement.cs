@@ -22,7 +22,7 @@ namespace AutoMed_Backend.SecurityInfra
             this.ctx = ctx;
             config = _config;
         }
-        public async Task<bool> RegisterUserAsync(AppUser user)
+        public async Task<bool> RegisterUserAsync(AppUser user, string branch)
         {
             bool isUserCreated = false;
             try
@@ -47,15 +47,33 @@ namespace AutoMed_Backend.SecurityInfra
                         isUserCreated = true;
                         await AssignRoleToUser(new UserRole { Email = user.Email, RoleName = user.Role });
 
-                        var c = new Customer()
+                        if (user.Role.Equals("Customer"))
                         {
-                            CustomerName = user.Name,
-                            Email = user.Email,
-                            Password = user.Password
-                        };
-                        
-                        await ctx.Customers.AddAsync(c);
-                        await ctx.SaveChangesAsync();
+
+                            var c = new Customer()
+                            {
+                                CustomerName = user.Name,
+                                Email = user.Email,
+                                Password = user.Password
+                            };
+
+                            await ctx.Customers.AddAsync(c);
+                            await ctx.SaveChangesAsync();
+                        }
+                        else if (user.Role.Equals("StoreOwner")) 
+                        {
+                            var b = ctx.Branches.Where(b => b.BranchName.ToLower().Equals(branch.ToLower())).FirstOrDefault();
+                            var o = new StoreOwner()
+                            {
+                                Name = user.Name,
+                                Email = user.Email,
+                                Password = user.Password,
+                                BranchId = b.BranchId
+                            };
+
+                            await ctx.StoreOwners.AddAsync(o);
+                            await ctx.SaveChangesAsync();
+                        }
                     }
                 }
                 else

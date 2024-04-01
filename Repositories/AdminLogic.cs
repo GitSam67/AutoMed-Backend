@@ -56,7 +56,10 @@ namespace AutoMed_Backend.Repositories
                         var result = await ctx.Medicines.AddAsync(med);
                         await ctx.SaveChangesAsync();
 
-                        ctx.Inventory.Add(new Inventory() { MedicineId = med.MedicineId, Quantity = 0 });
+                        foreach (var branchId in new[] { 1, 2, 3, 4 })
+                        {
+                            ctx.Inventory.Add(new Inventory() { MedicineId = med.MedicineId, Quantity = 0, BranchId = branchId });
+                        }
                         await ctx.SaveChangesAsync();
 
                         single.Record = result.Entity;
@@ -138,7 +141,7 @@ namespace AutoMed_Backend.Repositories
             return single;
         }
 
-        public async void PlaceOrder(Dictionary<Medicine, int> orders)
+        public async void PlaceOrder(Dictionary<Medicine, int> orders, string branchName)
         {
             using (var transaction = ctx.Database.BeginTransaction())
             {
@@ -152,10 +155,11 @@ namespace AutoMed_Backend.Repositories
                     {
 
                         var med = from m in medicine where m.Name.ToLower() == item.Key.Name.ToLower() select new { id = m.MedicineId, price = m.UnitPrice };
-
+                        var branch = ctx.Branches.Where(b => b.BranchName.ToLower().Equals(branchName.ToLower())).FirstOrDefault();
+                        
                         foreach (var m in med)
                         {
-                            var id = (from i in inventory where i.MedicineId.Equals(m.id) select i.InventoryId).FirstOrDefault();
+                            var id = (from i in inventory where i.BranchId.Equals(branch.BranchId) && i.MedicineId.Equals(m.id) select i.InventoryId).FirstOrDefault();
                             var bal = cashbalance.FirstOrDefault();
 
                             var record = await ctx.Inventory.FindAsync(id);

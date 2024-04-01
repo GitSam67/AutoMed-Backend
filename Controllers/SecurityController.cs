@@ -21,11 +21,11 @@ namespace AutoMed_Backend.Controllers
 
         [HttpPost]
         [ActionName("register")]
-        public async Task<IActionResult> RegisterUserAsync(AppUser user)
+        public async Task<IActionResult> RegisterUserAsync(AppUser user, string branch)
         {
             try
             {
-                var result = await security.RegisterUserAsync(user);
+                var result = await security.RegisterUserAsync(user, branch);
                 if (result)
                 {
                     response.Message = $"User {user.Email} created successfully";
