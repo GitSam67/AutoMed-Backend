@@ -4,7 +4,7 @@ namespace AutoMed_Backend.Interfaces
 {
     public interface ISalesLogic
     {
-        public Task<object> GenerateSaleReport(Customer c, Dictionary<Medicine, int> orders, decimal bill, string mode, string branchName);
+        public Task<object> GenerateSaleReport(Customer c, Dictionary<string, int> orders, decimal bill, string mode, string branchName);
 
     }
 }

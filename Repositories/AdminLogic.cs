@@ -10,14 +10,15 @@ namespace AutoMed_Backend.Repositories
     {
         StoreDbContext ctx;
 
-        CollectionResponse<Medicine> collection;
-        SingleObjectResponse<Medicine> single;
+        CollectionResponse<Medicine> collection = new CollectionResponse<Medicine>();
+        CollectionResponse<Orders> orderCollection = new CollectionResponse<Orders>();
+        SingleObjectResponse<Medicine> single = new SingleObjectResponse<Medicine>();
+        SingleObjectResponse<StoreOwner> storeSingle = new SingleObjectResponse<StoreOwner>();
+        SingleObjectResponse<Branch> branchSingle = new SingleObjectResponse<Branch>();
 
-        public AdminLogic(StoreDbContext ctx, CollectionResponse<Medicine> coll, SingleObjectResponse<Medicine> single) 
+        public AdminLogic(StoreDbContext ctx) 
         {
             this.ctx = ctx;
-            this.collection = coll;
-            this.single = single;
         }
 
 
@@ -141,7 +142,59 @@ namespace AutoMed_Backend.Repositories
             return single;
         }
 
-        public async Task<SingleObjectResponse<Medicine>> PlaceOrder(Dictionary<Medicine, int> orders, int branchId)
+        public async Task<SingleObjectResponse<StoreOwner>> AddStoreOwner(StoreOwner o)
+        {
+
+            using (var transaction = ctx.Database.BeginTransaction())
+            {
+                try
+                {
+                    var _result = await ctx.StoreOwners.AddAsync(o);
+                    await ctx.SaveChangesAsync();
+
+                    storeSingle.Record = _result.Entity;
+                    storeSingle.Message = "StoreOwner added successfully..!!";
+                    storeSingle.StatusCode = 200;
+
+                    await transaction.CommitAsync();
+                }
+                catch (Exception ex)
+                {
+                    await transaction.RollbackAsync();
+                    storeSingle.Message = ex.Message;
+                    storeSingle.StatusCode = 500;
+                }
+            }
+            return storeSingle;
+        }
+
+        public async Task<SingleObjectResponse<Branch>> AddBranch(Branch b)
+        {
+
+            using (var transaction = ctx.Database.BeginTransaction())
+            {
+                try
+                {
+                    var _result = await ctx.Branches.AddAsync(b);
+                    await ctx.SaveChangesAsync();
+
+                    branchSingle.Record = _result.Entity;
+                    branchSingle.Message = "Branch added successfully..!!";
+                    branchSingle.StatusCode = 200;
+
+                    await transaction.CommitAsync();
+                }
+                catch (Exception ex)
+                {
+                    await transaction.RollbackAsync();
+                    branchSingle.Message = ex.Message;
+                    branchSingle.StatusCode = 500;
+                }
+            }
+            return branchSingle;
+        }
+
+        public async Task<SingleObjectResponse<Medicine>> PlaceOrder(Dictionary<string, int> orders, int branchId)
         {
             using (var transaction = ctx.Database.BeginTransaction())
             {
@@ -154,7 +207,7 @@ namespace AutoMed_Backend.Repositories
                     foreach (var item in orders)
                     {
 
-                        var med = from m in medicine where m.Name.ToLower() == item.Key.Name.ToLower() select new { id = m.MedicineId, price = m.UnitPrice };
+                        var med = from m in medicine where m.Name.ToLower() == item.Key.ToLower() select new { id = m.MedicineId, price = m.UnitPrice };
                         
                         foreach (var m in med)
                         {
@@ -183,7 +236,7 @@ namespace AutoMed_Backend.Repositories
                         }
                         if (!flag)
                         {
-                            Console.WriteLine($"\nNo medicine with name: '{item.Key.Name}' exists...!! Try again.");
+                            Console.WriteLine($"\nNo medicine with name: '{item.Key}' exists...!! Try again.");
                         }
                     }
 
@@ -198,9 +251,64 @@ namespace AutoMed_Backend.Repositories
             return single;
         }
 
-        public async Task<Dictionary<Medicine, int>> GetInventoryDetails(int branchId)
+        public async Task<SingleObjectResponse<Medicine>> RemoveStock(Dictionary<string, int> items, int branchId)
         {
-           var _result = new Dictionary<Medicine, int>();
+            using (var transaction = ctx.Database.BeginTransaction())
+            {
+                try
+                {
+                    var medicine = ctx.Medicines.ToList();
+                    var inventory = ctx.Inventory.ToList();
+                    bool flag = false;
+                    foreach (var item in items)
+                    {
+
+                        var med = from m in medicine where m.Name.ToLower() == item.Key.ToLower() select new { id = m.MedicineId, price = m.UnitPrice };
+
+                        foreach (var m in med)
+                        {
+                            var id = (from i in inventory where i.BranchId.Equals(branchId) && i.MedicineId.Equals(m.id) select i.InventoryId).FirstOrDefault();
+                            
+                            var record = await ctx.Inventory.FindAsync(id);
+                            if (record != null)
+                            {
+                                record.Quantity = 0;
+
+                                Console.WriteLine("\nOrder removed successfully..!!");
+                                await ctx.SaveChangesAsync();
+                                await transaction.CommitAsync();
+
+                                single.Message = $"Order removed successfully...!!";
+                                single.StatusCode = 200;
+                                flag = true;
+                            }
+                            else
+                            {
+                                Console.WriteLine("\nNo record found..!!");
+                            }
+
+                        }
+                        if (!flag)
+                        {
+                            Console.WriteLine($"\nNo medicine with name: '{item.Key}' exists...!! Try again.");
+                        }
+                    }
+
+                }
+                catch (Exception ex)
+                {
+                    await transaction.RollbackAsync();
+                    single.Message = $"Failed to remove order...!!";
+                    single.StatusCode = 500;
+                }
+            }
+            return single;
+        }
+
+
+        public async Task<Dictionary<string, int>> GetInventoryDetails(int branchId)
+        {
+           var _result = new Dictionary<string, int>();
             try
             {
                 var inventory = await ctx.Inventory.Where(i => i.BranchId.Equals(branchId)).ToListAsync();
@@ -212,7 +320,7 @@ namespace AutoMed_Backend.Repositories
                     //Console.WriteLine($"*  Medicine: {med}, Qty: {stock.Quantity}");
                     if (med != null)
                     {
-                        _result.Add(med, stock.Quantity);
+                        _result.Add(med.Name, stock.Quantity);
                     }
                 }
             }
@@ -236,7 +344,7 @@ namespace AutoMed_Backend.Repositories
         }
 
 
-        public async Task<bool> CreateSalesReport(Customer c, Dictionary<Medicine, int> orders, decimal bill, int branchId)
+        public async Task<bool> CreateSalesReport(Customer c, Dictionary<string, int> orders, decimal bill, int branchId)
         {
             var isCreated = false;
             using (var transaction = ctx.Database.BeginTransaction())
@@ -251,7 +359,7 @@ namespace AutoMed_Backend.Repositories
 
                     foreach (var order in orders)
                     {
-                        var med = (from m in _med where m.Name.ToLower() == order.Key.Name.ToLower() select m).FirstOrDefault();
+                        var med = (from m in _med where m.Name.ToLower() == order.Key.ToLower() select m).FirstOrDefault();
 
                         if (med != null)
                         {
@@ -277,9 +385,32 @@ namespace AutoMed_Backend.Repositories
         }
 
 
+        public async Task<CollectionResponse<Orders>> GetSalesReport(int branchId) 
+        {
+            try
+            {
+                if (branchId > 0)
+                {
+                    orderCollection.Records = await ctx.Orders.Where(s => s.BranchId.Equals(branchId)).ToListAsync();
+                }
+                else
+                {
+                    orderCollection.Records = await ctx.Orders.ToListAsync();
+                }
+                orderCollection.StatusCode = 200;
+            
+            }
+            catch (Exception ex)
+            {
+                orderCollection.StatusCode = 500;
+                throw ex;
+            }
+
+            return orderCollection;
+        }
         
 
-        public async Task<object> GenerateSaleReport(Customer c, Dictionary<Medicine, int> orders, decimal bill, string mode, string branchName)
+        public async Task<object> GenerateSaleReport(Customer c, Dictionary<string, int> orders, decimal bill, string mode, string branchName)
         {
             object result = new object();
             List<object> ord = new List<object>();
@@ -319,7 +450,7 @@ namespace AutoMed_Backend.Repositories
 
                         foreach (var order in orders)
                         {
-                            var med = (from m in _med where order.Key.Name.ToLower() == m.Name.ToLower() select m).FirstOrDefault();
+                            var med = (from m in _med where order.Key.ToLower() == m.Name.ToLower() select m).FirstOrDefault();
 
                             if (med != null)
                             {
@@ -349,7 +480,6 @@ namespace AutoMed_Backend.Repositories
                         Mode = mode,
                         Orders = ord,
                         SalesAmount = bill,
-                        //GrossSales = GetTotalSales(branch.BranchId)
                     };
 
                     await transaction.CommitAsync();
@@ -361,6 +491,56 @@ namespace AutoMed_Backend.Repositories
                 }
             }
             return result;
+        }
+
+        public async Task<CollectionResponse<Medicine>> CheckForExpiry(int branchId) 
+        {
+            try
+            {
+                List<Medicine> result = new List<Medicine>();
+                var _inv = await ctx.Inventory.Where(i => i.BranchId.Equals(branchId)).ToListAsync();
+                var _med = await ctx.Medicines.ToListAsync();
+                foreach (var m in _med)
+                {
+                    var x = (from i in _inv where i.InventoryId == m.MedicineId && m.ExpiryDate <= DateTime.Now.AddDays(10) select m).FirstOrDefault();
+                    result.Add(x);
+                }
+
+                collection.Records = result;
+                collection.StatusCode = 200;
+            }
+            catch (Exception ex)
+            {
+                collection.StatusCode = 500;
+                throw ex;
+            }
+
+            return collection;
+        }
+
+        public async Task<CollectionResponse<Medicine>> CheckForStockLevel(int branchId)
+        {
+            try
+            {
+                List<Medicine> result = new List<Medicine>();
+                var _inv = await ctx.Inventory.Where(i => i.BranchId.Equals(branchId)).ToListAsync();
+                var _med = await ctx.Medicines.ToListAsync();
+                foreach (var m in _med)
+                {
+                    var x = (from i in _inv where i.InventoryId == m.MedicineId && i.Quantity <= 5 select m).FirstOrDefault();
+                    result.Add(x);
+                }
+
+                collection.Records = result;
+                collection.StatusCode = 200;
+            }
+            catch (Exception ex)
+            {
+                collection.StatusCode = 500;
+                throw ex;
+            }
+
+            return collection;
         }
     }
 }

@@ -61,32 +61,23 @@ namespace AutoMed_Backend.Controllers
             return Ok(response);
         }
 
-        //[HttpPost]
-        //[ActionName("approveuser")]
-        //[Authorize(Policy = "AdminPolicy")]
-        //public async Task<IActionResult> ApproveUser(UserRole userRole)
-        //{
-        //    try
-        //    {
-        //        var result = await security.AssignRoleToUser(userRole);
-        //        if (result)
-        //        {
-        //            response.Message = $"Role {userRole.RoleName} is assigned to User {userRole.Email} successfully";
-        //        }
-        //    }
-        //    catch (Exception ex)
-        //    {
-        //        response.Message = ex.Message;
-        //        throw ex;
-        //    }
-        //    return Ok(response);
-        //}
 
-        [HttpPost]
+        [HttpGet]
+        [ActionName("GetCurrentUser")]
+        public async Task<IActionResult> GetCurrentUserDetail(string token)
+        {
+            var result = await security.GetUserFromTokenAsync(token);
+
+            return Ok(result);
+        }
+
+
+
+        [HttpDelete]
         [ActionName("logout")]
         public async Task<IActionResult> Logout()
         {
-            var isLogOut = await security.LogoutAsync();
+            await security.LogoutAsync();
             return Ok("Logged out Successfully");
         }
     }

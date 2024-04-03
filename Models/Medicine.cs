@@ -19,7 +19,5 @@ namespace AutoMed_Backend.Models
 
         public string? Category { get; set; }
 
-
-
     }
 }

@@ -12,15 +12,14 @@ namespace AutoMed_Backend.Repositories
 
         StoreDbContext ctx;
 
-        SingleObjectResponse<Customer> single;
+        SingleObjectResponse<Customer> single = new SingleObjectResponse<Customer>();
 
         AdminLogic adminLogic;
 
-        public CustomerLogic(StoreDbContext ctx, SingleObjectResponse<Customer> _single, AdminLogic adminLogic)
+        public CustomerLogic(StoreDbContext ctx, AdminLogic logic)
         {
             this.ctx = ctx;
-            single = _single;
-            this.adminLogic = adminLogic;
+            adminLogic = logic;
         }
         public async Task<SingleObjectResponse<Customer>> AddCustomer(Customer c)
         {
@@ -49,43 +48,25 @@ namespace AutoMed_Backend.Repositories
             return single;
         }
 
-        public async Task<KeyValuePair<Dictionary<Medicine, int>, List<string>>> CheckAvailability(Dictionary<Medicine, int> orders) 
+        public async Task<Dictionary<string, int>> CheckAvailability(int branchId) 
         {
-            List<string> NotAvailables = new List<string>();
-            var medicineDb = await ctx.Medicines.Select(m => m.Name).ToListAsync();
             var medDb = await ctx.Medicines.ToListAsync();
-            var invDb = await ctx.Inventory.ToListAsync();
-            bool flag = false;
+            var invDb = await ctx.Inventory.Where(i => i.BranchId.Equals(branchId)).ToListAsync();
 
-            foreach (var o in orders)
+            Dictionary<string, int> result = new Dictionary<string, int>();
+            var _inv = await ctx.Inventory.Where(i => i.BranchId.Equals(branchId)).ToListAsync();
+            var _med = await ctx.Medicines.ToListAsync();
+            foreach (var i in _inv)
             {
-                if (medicineDb.Contains(o.Key.Name, StringComparer.OrdinalIgnoreCase))
-                {
-                    var id = (from m in medDb where m.Name.ToLower() == o.Key.Name.ToLower() select m.MedicineId).FirstOrDefault();
-                    var inventory = (from i in invDb where i.MedicineId == id select i).FirstOrDefault();
-                    if (inventory.Quantity - o.Value >= 0)
-                    {
-                        continue;
-                    }
-                    else
-                    {
-                        NotAvailables.Add(o.Key.Name);
-                        orders.Remove(o.Key);
-                        flag = true;
-                    }
-                }
-                else
-                {
-                    NotAvailables.Add(o.Key.Name);
-                    orders.Remove(o.Key);
-                    flag = true;
-                }
+                var x = (from m in _med where i.MedicineId == m.MedicineId select new { Med = m.Name, Qty = i.Quantity}).FirstOrDefault();
+                result.Add(x.Med, x.Qty);
             }
 
-            return KeyValuePair.Create(orders, NotAvailables);
+
+            return result;
         }
 
-        public async Task<decimal> GenerateMedicalBill(Customer c, Dictionary<Medicine, int> orders, decimal claim, string branchName)
+        public async Task<decimal> GenerateMedicalBill(int customerId, Dictionary<string, int> orders, decimal claim, string branchName)
         {
             using (var transaction = ctx.Database.BeginTransaction())
             {
@@ -98,6 +79,7 @@ namespace AutoMed_Backend.Repositories
                     var invoice = random.Next(1000000, 10000000);
 
                     var medicines = ctx.Medicines.ToList();
+                    var c = ctx.Customers.Where(c => c.CustomerId.Equals(customerId)).FirstOrDefault();
 
                     string folder = Path.Combine(Directory.GetCurrentDirectory(), "Medical_Bills");
                     if (!Directory.Exists(folder))
@@ -134,7 +116,7 @@ namespace AutoMed_Backend.Repositories
                         foreach (var order in orders)
                         {
 
-                            var med = (from m in medicines where m.Name.ToLower() == order.Key.Name.ToLower() select m).FirstOrDefault();
+                            var med = (from m in medicines where m.Name.ToLower() == order.Key.ToLower() select m).FirstOrDefault();
 
                             writer.WriteLine($"  {sr++}    |    {med.Name} - {med.BatchNumber}        |      {order.Value}       |      {med.UnitPrice}        |");
 
@@ -174,10 +156,12 @@ namespace AutoMed_Backend.Repositories
             }
         }
 
-        public void ViewMedicalBill(Customer c)
+        public void ViewMedicalBill(int customerId)
         {
             try
             {
+                var c = ctx.Customers.Where(c => c.CustomerId.Equals(customerId)).FirstOrDefault();
+
                 string folder = Path.Combine(Directory.GetCurrentDirectory(), "Medical_Bills");
                 string filename = $"{c.CustomerName}_0{c.CustomerId}_MedBill.txt";
                 string filepath = Path.Combine(folder, filename);
@@ -201,7 +185,7 @@ namespace AutoMed_Backend.Repositories
             }
         }
 
-        public async void ExecuteOrder(Customer c, Dictionary<Medicine, int> orders, decimal bill, string branchName)
+        public async void ExecuteOrder(Customer c, Dictionary<string, int> orders, decimal bill, string branchName)
         {
             using (var transaction = ctx.Database.BeginTransaction())
             {
@@ -218,7 +202,7 @@ namespace AutoMed_Backend.Repositories
                         // order.key -> Medicine name
                         // order.value -> qty
 
-                        var med = (from m in medicine where m.Name.ToLower() == order.Key.Name.ToLower() select new { id = m.MedicineId, price = m.UnitPrice }).FirstOrDefault();
+                        var med = (from m in medicine where m.Name.ToLower() == order.Key.ToLower() select new { id = m.MedicineId, price = m.UnitPrice }).FirstOrDefault();
 
                         var id = (from i in inventory where i.MedicineId.Equals(med.id) && i.BranchId.Equals(branch.BranchId) select i.InventoryId).FirstOrDefault();
                         var record = await ctx.Inventory.FindAsync(id);
@@ -259,7 +243,7 @@ namespace AutoMed_Backend.Repositories
             return bal.TotalSales;
         }
 
-        public async Task<object> GenerateSaleReport(Customer c, Dictionary<Medicine, int> orders, decimal bill, string mode, string branchName)
+        public async Task<object> GenerateSaleReport(Customer c, Dictionary<string, int> orders, decimal bill, string mode, string branchName)
         {
             object result = new object();
             List<object> ord = new List<object>();
@@ -290,7 +274,7 @@ namespace AutoMed_Backend.Repositories
 
                         foreach (var order in orders)
                         {
-                            var med = (from m in _med where order.Key.Name.ToLower() == m.Name.ToLower() select m).FirstOrDefault();
+                            var med = (from m in _med where order.Key.ToLower() == m.Name.ToLower() select m).FirstOrDefault();
 
                             if (med != null)
                             {

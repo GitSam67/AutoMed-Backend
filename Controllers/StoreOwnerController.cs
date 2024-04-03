@@ -7,7 +7,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace AutoMed_Backend.Controllers
 {
-    [Route("api/[controller]")]
+    [Route("api/[controller]/[action]")]
     [ApiController]
     public class StoreOwnerController : ControllerBase
     {
@@ -24,62 +24,20 @@ namespace AutoMed_Backend.Controllers
         [ActionName("AddCustomer")]
         public async Task<IActionResult> AddCustomer(Customer c)
         {
-           var response = await CustomerLogic.AddCustomer(c);
-              
+            var response = await CustomerLogic.AddCustomer(c);
+
             if (response.StatusCode.Equals(200))
             {
-               response.Message = $"Customer {c.CustomerName} added successfully";
+                response.Message = $"Customer {c.CustomerName} added successfully";
                 return Ok(response);
             }
             return BadRequest(response);
         }
 
-
-        [HttpPost]
-        [ActionName("AddMedicine")]
-        public async Task<IActionResult> AddMedicine(Medicine med)
-        {
-            var response = await AdminLogic.AddMedicine(med);
-            
-            if (response.StatusCode.Equals(200))
-            {
-                response.Message = $"Medicine {med.Name} added successfully";
-                return Ok(response);
-            }
-            return BadRequest(response);
-        }
-
-        [HttpPut]
-        [ActionName("UpdateMedicine")]
-        public async Task<IActionResult> UpdateMedicine(int id, Medicine med)
-        {
-            var response = await AdminLogic.UpdateMedicine(id, med);
-            
-            if (response.StatusCode.Equals(200))
-            {
-                response.Message = $"Medicine {med.Name} updated successfully";
-                return Ok(response);
-            }
-            return BadRequest(response);
-        }
-
-        [HttpDelete]
-        [ActionName("RemoveMedicine")]
-        public async Task<IActionResult> RemoveMedicine(int id)
-        {
-            var response = await AdminLogic.RemoveMedicine(id);
-            
-            if (response.StatusCode.Equals(200))
-            {
-                response.Message = $"Medicine removed successfully";
-                return Ok(response);
-            }
-            return BadRequest(response);
-        }
 
         [HttpPost]
         [ActionName("PlaceOrder")]
-        public async Task<IActionResult> PlaceOrder(Dictionary<Medicine, int> orders, int branchId)
+        public async Task<IActionResult> PlaceOrder(Dictionary<string, int> orders, int branchId)
         {
             var response = await AdminLogic.PlaceOrder(orders, branchId);
             if (response.StatusCode.Equals(200))
@@ -89,6 +47,20 @@ namespace AutoMed_Backend.Controllers
             }
             return BadRequest(response);
         }
+
+        [HttpDelete]
+        [ActionName("RemoveStock")]
+        public async Task<IActionResult> RemoveStock(Dictionary<string, int> orders, int branchId)
+        {
+            var response = await AdminLogic.RemoveStock(orders, branchId);
+            if (response.StatusCode.Equals(200))
+            {
+                response.Message = $"Stock removed successfully";
+                return Ok(response);
+            }
+            return BadRequest(response);
+        }
+
 
         [HttpGet]
         [ActionName("GetInventory")]
@@ -120,24 +92,31 @@ namespace AutoMed_Backend.Controllers
             return Ok(response);
         }
 
-        [HttpPost]
-        [ActionName("CreateSalesReport")]
-        public async Task<IActionResult> CreateSalesReport(Customer c, Dictionary<Medicine, int> orders, decimal bill,int branchId)
-        {
-            var response = await AdminLogic.CreateSalesReport(c, orders, bill,branchId);
-            if (response)
-            {
-                return Ok(response);
-            }
-            return BadRequest(response);
-        }
 
         [HttpGet]
         [ActionName("GetSalesReport")]
-        public async Task<IActionResult> GetSalesReport(Customer c, Dictionary<Medicine, int> orders, decimal bill, string mode, string branchName)
+        public async Task<IActionResult> GetSalesReport(int branchId)
         {
-            var response = AdminLogic.GenerateSaleReport(c, orders, bill, mode, branchName);
+            var response = AdminLogic.GetSalesReport(branchId);
             
+            return Ok(response);
+        }
+
+        [HttpGet]
+        [ActionName("CheckForExpiry")]
+        public async Task<IActionResult> CheckForExpiry(int branchId)
+        {
+            var response = AdminLogic.CheckForExpiry(branchId);
+           
+            return Ok(response);
+        }
+
+        [HttpGet]
+        [ActionName("CheckForStockLevel")]
+        public async Task<IActionResult> CheckForStockLevel(int branchId)
+        {
+            var response = AdminLogic.CheckForStockLevel(branchId);
+
             return Ok(response);
         }
 

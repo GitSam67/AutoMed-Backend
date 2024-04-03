@@ -47,31 +47,6 @@ namespace AutoMed_Backend.SecurityInfra
                         isUserCreated = true;
                         await AssignRoleToUser(new UserRole { Email = user.Email, RoleName = user.Role });
 
-                        if (user.Role.Equals("Customer"))
-                        {
-
-                            var c = new Customer()
-                            {
-                                CustomerName = user.Name,
-                                Email = user.Email
-                            };
-
-                            await ctx.Customers.AddAsync(c);
-                            await ctx.SaveChangesAsync();
-                        }
-                        else if (user.Role.Equals("StoreOwner")) 
-                        {
-                            var b = ctx.Branches.Where(b => b.BranchName.ToLower().Equals(branch.ToLower())).FirstOrDefault();
-                            var o = new StoreOwner()
-                            {
-                                OwnerName = user.Name,
-                                Email = user.Email,
-                                BranchId = b.BranchId
-                            };
-
-                            await ctx.StoreOwners.AddAsync(o);
-                            await ctx.SaveChangesAsync();
-                        }
                     }
                 }
                 else
@@ -151,8 +126,10 @@ namespace AutoMed_Backend.SecurityInfra
             return response;
         }
 
-        public async Task<KeyValuePair<string, string>> GetUserFromTokenAsync(string token)
+        public async Task<KeyValuePair<object, string>> GetUserFromTokenAsync(string token)
         {
+            object? user = new object();
+
             var jwtHandler = new JwtSecurityTokenHandler();
 
             var jwtSecurityToken = jwtHandler.ReadJwtToken(token);
@@ -165,7 +142,15 @@ namespace AutoMed_Backend.SecurityInfra
 
             var _roleName = jwtSecurityToken.Claims.Take(2).Last().Value;
 
-            return KeyValuePair.Create(_userEmail, _roleName);
+            if (_roleName.Equals("Customer")) {
+                user = ctx.Customers.Where(c => c.Email.Equals(_userEmail)).FirstOrDefault();
+            }
+            else if (_roleName.Equals("StoreOwner"))
+            {
+                user = ctx.StoreOwners.Where(c => c.Email.Equals(_userEmail)).FirstOrDefault();
+            }
+
+            return KeyValuePair.Create(user, _roleName);
         }
 
         public async Task<bool> CreateRoleAsync(RoleInfo role)

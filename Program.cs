@@ -9,12 +9,9 @@ using Microsoft.Extensions.Configuration;
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddDbContext<StoreDbContext>(options =>
-options.UseSqlServer(
-        builder.Configuration.GetConnectionString("AutoMed"),
-        sqlServerOptionsAction: sqlOptions =>
-        {
-            sqlOptions.EnableRetryOnFailure();
-        }));
+{
+    options.UseSqlServer(builder.Configuration.GetConnectionString("AutoMed"));
+});      
 
 
 builder.Services.AddDbContext<AppSecurityDbContext>(option =>
@@ -31,8 +28,8 @@ await SuperAdminAssign.CreateApplicationAdministrator(serviceProvider);
 
 
 builder.Services.AddTransient<SecurityManagement>();
-builder.Services.AddTransient<AdminLogic>();
-builder.Services.AddTransient<CustomerLogic>();
+builder.Services.AddScoped<AdminLogic>();
+builder.Services.AddScoped<CustomerLogic>();
 
 
 // Add services to the container.
