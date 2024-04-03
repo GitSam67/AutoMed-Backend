@@ -4,9 +4,9 @@ namespace AutoMed_Backend.Interfaces
 {
     public interface IInventoryLogic
     {
-        public void PlaceOrder(Dictionary<Medicine, int> orders);
-        public Task<Dictionary<Medicine, int>> GetInventoryDetails();
-        public decimal GetCashBalance();
-        public decimal GetTotalSales();
+        public Task<SingleObjectResponse<Medicine>> PlaceOrder(Dictionary<Medicine, int> orders, int branchId);
+        public Task<Dictionary<Medicine, int>> GetInventoryDetails(int branchId);
+        public decimal GetCashBalance(int branchId);
+        public decimal GetTotalSales(int branchId);
     }
 }

@@ -1,6 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
-using System.Collections.Generic;
-using System.Reflection.Emit;
+
 
 namespace AutoMed_Backend.Models
 {
@@ -13,9 +12,11 @@ namespace AutoMed_Backend.Models
         public DbSet<CashBalance> CashBalance { get; set; }
         public DbSet<Branch> Branches { get; set; }
         public DbSet<StoreOwner> StoreOwners { get; set; }
-        //public DbSet<SuperAdmin> SuperAdmin { get; set; }
 
-        public StoreDbContext() { }
+        public StoreDbContext()
+        {
+
+        }
 
         // DI Resolve
         public StoreDbContext(DbContextOptions<StoreDbContext> options) : base(options)
@@ -89,6 +90,10 @@ namespace AutoMed_Backend.Models
             modelBuilder.Entity<CashBalance>()
                 .HasKey(c => c.id);
 
+            modelBuilder.Entity<CashBalance>()
+                .HasOne<Branch>()
+                .WithMany()
+                .HasForeignKey(s => s.BranchId);
 
             modelBuilder.Entity<Branch>()
                 .HasKey(i => i.BranchId);

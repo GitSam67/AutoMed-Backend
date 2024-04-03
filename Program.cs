@@ -4,18 +4,22 @@ using AutoMed_Backend.Repositories;
 using AutoMed_Backend.SecurityInfra;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Options;
+using Microsoft.Extensions.Configuration;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddDbContext<StoreDbContext>(options =>
-{
-    options.UseSqlServer(builder.Configuration.GetConnectionString("AutoMed"));
-});
+options.UseSqlServer(
+        builder.Configuration.GetConnectionString("AutoMed"),
+        sqlServerOptionsAction: sqlOptions =>
+        {
+            sqlOptions.EnableRetryOnFailure();
+        }));
 
-builder.Services.AddDbContext<AppSecurityDbContext>(option => 
+
+builder.Services.AddDbContext<AppSecurityDbContext>(option =>
 {
-    option.UseSqlServer(builder.Configuration.GetConnectionString("AutoMedSecurity"));    
+    option.UseSqlServer(builder.Configuration.GetConnectionString("AutoMedSecurity"));
 });
 
 
@@ -27,8 +31,8 @@ await SuperAdminAssign.CreateApplicationAdministrator(serviceProvider);
 
 
 builder.Services.AddTransient<SecurityManagement>();
-builder.Services.AddScoped<AdminLogic>();
-builder.Services.AddScoped<CustomerLogic>();
+builder.Services.AddTransient<AdminLogic>();
+builder.Services.AddTransient<CustomerLogic>();
 
 
 // Add services to the container.
@@ -63,6 +67,7 @@ app.UseHttpsRedirection();
 
 app.UseCors("cors");
 
+app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();

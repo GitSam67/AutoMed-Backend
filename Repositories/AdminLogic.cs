@@ -56,7 +56,7 @@ namespace AutoMed_Backend.Repositories
                         var result = await ctx.Medicines.AddAsync(med);
                         await ctx.SaveChangesAsync();
 
-                        foreach (var branchId in new[] { 1, 2, 3, 4 })
+                        foreach (var branchId in new[] { 1, 2, 3, 4, 5 })
                         {
                             ctx.Inventory.Add(new Inventory() { MedicineId = med.MedicineId, Quantity = 0, BranchId = branchId });
                         }
@@ -141,7 +141,7 @@ namespace AutoMed_Backend.Repositories
             return single;
         }
 
-        public async void PlaceOrder(Dictionary<Medicine, int> orders, string branchName)
+        public async Task<SingleObjectResponse<Medicine>> PlaceOrder(Dictionary<Medicine, int> orders, int branchId)
         {
             using (var transaction = ctx.Database.BeginTransaction())
             {
@@ -155,12 +155,11 @@ namespace AutoMed_Backend.Repositories
                     {
 
                         var med = from m in medicine where m.Name.ToLower() == item.Key.Name.ToLower() select new { id = m.MedicineId, price = m.UnitPrice };
-                        var branch = ctx.Branches.Where(b => b.BranchName.ToLower().Equals(branchName.ToLower())).FirstOrDefault();
                         
                         foreach (var m in med)
                         {
-                            var id = (from i in inventory where i.BranchId.Equals(branch.BranchId) && i.MedicineId.Equals(m.id) select i.InventoryId).FirstOrDefault();
-                            var bal = cashbalance.FirstOrDefault();
+                            var id = (from i in inventory where i.BranchId.Equals(branchId) && i.MedicineId.Equals(m.id) select i.InventoryId).FirstOrDefault();
+                            var bal = cashbalance.Where(c => c.BranchId.Equals(branchId)).FirstOrDefault();
 
                             var record = await ctx.Inventory.FindAsync(id);
                             if (record != null)
@@ -171,6 +170,9 @@ namespace AutoMed_Backend.Repositories
                                 Console.WriteLine("\nOrder placed successfully..!!");
                                 await ctx.SaveChangesAsync();
                                 await transaction.CommitAsync();
+
+                                single.Message = $"Order placed successfully...!!";
+                                single.StatusCode = 200;
                                 flag = true;
                             }
                             else
@@ -189,18 +191,21 @@ namespace AutoMed_Backend.Repositories
                 catch (Exception ex)
                 {
                     await transaction.RollbackAsync();
-                    Console.WriteLine(ex.Message);
+                    single.Message = $"Failed to place order...!!";
+                    single.StatusCode = 500;
                 }
             }
+            return single;
         }
 
-        public async Task<Dictionary<Medicine, int>> GetInventoryDetails()
+        public async Task<Dictionary<Medicine, int>> GetInventoryDetails(int branchId)
         {
            var _result = new Dictionary<Medicine, int>();
             try
             {
-                var inventory = await ctx.Inventory.ToListAsync();
+                var inventory = await ctx.Inventory.Where(i => i.BranchId.Equals(branchId)).ToListAsync();
                 var medicines = await ctx.Medicines.ToListAsync();
+
                 foreach (var stock in inventory)
                 {
                     var med = (from m in medicines where m.MedicineId == stock.MedicineId select m).FirstOrDefault();
@@ -219,20 +224,21 @@ namespace AutoMed_Backend.Repositories
             return _result;
         }
 
-        public decimal GetCashBalance()
+        public decimal GetCashBalance(int branchId)
         {
-            var bal = ctx.CashBalance.FirstOrDefault();
+            var bal = ctx.CashBalance.Where(c => c.BranchId.Equals(branchId)).FirstOrDefault();
             return bal.Balance;
         }
-        public decimal GetTotalSales()
+        public decimal GetTotalSales(int branchId)
         {
-            var bal = ctx.CashBalance.FirstOrDefault();
+            var bal = ctx.CashBalance.Where(c => c.BranchId.Equals(branchId)).FirstOrDefault();
             return bal.TotalSales;
         }
 
 
-        public async void CreateSalesReport(Customer c, Dictionary<string, int> orders, decimal bill)
+        public async Task<bool> CreateSalesReport(Customer c, Dictionary<Medicine, int> orders, decimal bill, int branchId)
         {
+            var isCreated = false;
             using (var transaction = ctx.Database.BeginTransaction())
             {
                 try
@@ -245,8 +251,7 @@ namespace AutoMed_Backend.Repositories
 
                     foreach (var order in orders)
                     {
-
-                        var med = (from m in _med where m.Name.ToLower() == order.Key.ToLower() select m).FirstOrDefault();
+                        var med = (from m in _med where m.Name.ToLower() == order.Key.Name.ToLower() select m).FirstOrDefault();
 
                         if (med != null)
                         {
@@ -255,30 +260,38 @@ namespace AutoMed_Backend.Repositories
                     }
 
                     sales.TotalBill = bill;
+                    sales.BranchId = branchId;
 
                     ctx.Orders.Add(sales);
                     await ctx.SaveChangesAsync();
                     await transaction.CommitAsync();
+                    isCreated = true;
                 }
                 catch (Exception ex)
                 {
                     await transaction.RollbackAsync();
-                    Console.WriteLine(ex.Message);
+                    throw ex;      
                 }
             }
+            return isCreated;
         }
 
 
-        public async void GenerateSaleReport(Customer c, Dictionary<string, int> orders, decimal bill, string mode)
+        
+
+        public async Task<object> GenerateSaleReport(Customer c, Dictionary<Medicine, int> orders, decimal bill, string mode, string branchName)
         {
+            object result = new object();
+            List<object> ord = new List<object>();
             using (var transaction = ctx.Database.BeginTransaction())
             {
                 try
                 {
                     var _med = ctx.Medicines.ToList();
                     var _sales = ctx.Orders.ToList();
+                    var branch = ctx.Branches.Where(b => b.BranchName.ToLower().Equals(branchName.ToLower())).FirstOrDefault();
 
-                    var _sale = (from s in _sales where s.CustomerId == c.CustomerId select s).FirstOrDefault();
+                    var _sale = (from s in _sales where s.CustomerId == c.CustomerId && s.BranchId == branch.BranchId select s).FirstOrDefault();
 
                     string folder = Path.Combine(Directory.GetCurrentDirectory(), "Sales_Report");
                     if (!Directory.Exists(folder))
@@ -306,11 +319,17 @@ namespace AutoMed_Backend.Repositories
 
                         foreach (var order in orders)
                         {
-                            var med = (from m in _med where order.Key.ToLower() == m.Name.ToLower() select m).FirstOrDefault();
+                            var med = (from m in _med where order.Key.Name.ToLower() == m.Name.ToLower() select m).FirstOrDefault();
 
                             if (med != null)
                             {
                                 writer.WriteLine($"   - Medicine: {med.Name}, Qty: {order.Value}, Amount: ₹{med.UnitPrice}");
+                                ord.Add(new
+                                {
+                                    Medicine = med.Name,
+                                    Qty = order.Value,
+                                    Amount = med.UnitPrice
+                                });
                             }
                         }
 
@@ -318,18 +337,30 @@ namespace AutoMed_Backend.Repositories
 
                         writer.WriteLine("\n__________________________________________________________________________________________________________________________________________");
 
-                        writer.WriteLine($"\n\n* Total Gross Sales = ₹{GetTotalSales()}");
+                        writer.WriteLine($"\n\n* Total Gross Sales = ₹{GetTotalSales(branch.BranchId)}");
                         writer.WriteLine($"                      ---------- \n");
                     }
+
+                    result = new
+                    {
+                        SaleId = _sale.OrderId,
+                        CustomerName = c.CustomerName,
+                        PurchaseDate = DateTime.Now.ToString("dd-MM-yyyy"),
+                        Mode = mode,
+                        Orders = ord,
+                        SalesAmount = bill,
+                        //GrossSales = GetTotalSales(branch.BranchId)
+                    };
 
                     await transaction.CommitAsync();
                 }
                 catch (Exception ex)
                 {
                     await transaction.RollbackAsync();
-                    Console.WriteLine(ex.Message);
+                    throw ex;
                 }
             }
+            return result;
         }
     }
 }

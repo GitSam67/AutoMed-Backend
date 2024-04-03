@@ -5,6 +5,10 @@ namespace AutoMed_Backend.Models
 {
     public class AppSecurityDbContext: IdentityDbContext
     {
+        public AppSecurityDbContext()
+        {
+            
+        }
         public AppSecurityDbContext(DbContextOptions<AppSecurityDbContext> options) : base(options)
         {
         }

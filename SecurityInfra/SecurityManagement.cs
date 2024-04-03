@@ -53,8 +53,7 @@ namespace AutoMed_Backend.SecurityInfra
                             var c = new Customer()
                             {
                                 CustomerName = user.Name,
-                                Email = user.Email,
-                                Password = user.Password
+                                Email = user.Email
                             };
 
                             await ctx.Customers.AddAsync(c);
@@ -65,9 +64,8 @@ namespace AutoMed_Backend.SecurityInfra
                             var b = ctx.Branches.Where(b => b.BranchName.ToLower().Equals(branch.ToLower())).FirstOrDefault();
                             var o = new StoreOwner()
                             {
-                                Name = user.Name,
+                                OwnerName = user.Name,
                                 Email = user.Email,
-                                Password = user.Password,
                                 BranchId = b.BranchId
                             };
 
