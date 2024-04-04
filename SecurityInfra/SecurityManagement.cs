@@ -1,7 +1,9 @@
 ﻿using AutoMed_Backend.Models;
+using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using System.Data;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 
@@ -23,7 +25,7 @@ namespace AutoMed_Backend.SecurityInfra
             this.ctx = ctx;
             config = _config;
         }
-        public async Task<bool> RegisterUserAsync(AppUser user, string branch)
+        public async Task<bool> RegisterUserAsync(AppUser user)
         {
             bool isUserCreated = false;
             try
@@ -36,7 +38,7 @@ namespace AutoMed_Backend.SecurityInfra
                 IdentityUser newUser = new IdentityUser()
                 {
                     UserName = user.Name,
-                    Email = user.Email,
+                    Email = user.Email
                 };
 
 
@@ -48,20 +50,6 @@ namespace AutoMed_Backend.SecurityInfra
                         isUserCreated = true;
                         await AssignRoleToUser(new UserRole { Email = user.Email, RoleName = user.Role });
 
-                        if (user.Role.Equals("StoreOwner")) 
-                        {
-                            var branchDb = await ctx.Branches.ToListAsync();
-                            var id = (from b in branchDb where b.BranchName.Equals(branch) select b.BranchId).FirstOrDefault();
-                            var s = new StoreOwner()
-                            {
-                                OwnerName = user.Name,
-                                Email = user.Email,
-                                BranchId = id
-                            };
-
-                            await ctx.StoreOwners.AddAsync(s);
-                            await ctx.SaveChangesAsync();
-                        }
                     }
                 }
                 else
@@ -78,6 +66,7 @@ namespace AutoMed_Backend.SecurityInfra
 
         public async Task<SecurityResponse> AuthenticateUserAsync(LoginUser user)
         {
+
             SecurityResponse response = new SecurityResponse();
 
             try
@@ -205,7 +194,16 @@ namespace AutoMed_Backend.SecurityInfra
             {
                 var roleAvailable = await RoleManager.FindByNameAsync(userRole.RoleName);
                 if (roleAvailable == null)
-                    throw new Exception($"Role: {userRole.RoleName} not exists..!!");
+                {
+                    IdentityRole identityRole = new IdentityRole()
+                    {
+                        Name = userRole.RoleName,
+                        NormalizedName = userRole.RoleName.ToUpper()
+                    };
+
+                    var res = await RoleManager.CreateAsync(identityRole);
+                    
+                }
 
                 var userAvailable = await UserManager.FindByEmailAsync(userRole.Email);
                 if (userAvailable == null)

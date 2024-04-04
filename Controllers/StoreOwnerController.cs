@@ -25,9 +25,9 @@ namespace AutoMed_Backend.Controllers
 
         [HttpPost]
         [ActionName("RegisterCustomer")]
-        public async Task<IActionResult> RegisterCustomer(AppUser user, string branch)
+        public async Task<IActionResult> RegisterCustomer(AppUser user)
         {
-            var response = await security.RegisterUserAsync(user, branch);
+            var response = await security.RegisterUserAsync(user);
 
             if (response)
             {
@@ -37,7 +37,7 @@ namespace AutoMed_Backend.Controllers
         }
 
 
-        [HttpPost]
+        [HttpPost("{branchId}")]
         [ActionName("PlaceOrder")]
         public async Task<IActionResult> PlaceOrder(Dictionary<string, int> orders, int branchId)
         {
@@ -50,7 +50,7 @@ namespace AutoMed_Backend.Controllers
             return BadRequest(response);
         }
 
-        [HttpDelete]
+        [HttpPut("{branchId}")]
         [ActionName("RemoveStock")]
         public async Task<IActionResult> RemoveStock(Dictionary<string, int> orders, int branchId)
         {
@@ -64,7 +64,7 @@ namespace AutoMed_Backend.Controllers
         }
 
 
-        [HttpGet]
+        [HttpGet("{branchId}")]
         [ActionName("GetInventory")]
         public async Task<IActionResult> GetInventoryStock(int branchId)
         {
@@ -76,7 +76,7 @@ namespace AutoMed_Backend.Controllers
             return BadRequest(response);
         }
 
-        [HttpGet]
+        [HttpGet("{branchId}")]
         [ActionName("GetCashBalance")]
         public async Task<IActionResult> GetCashBalance(int branchId)
         {
@@ -85,7 +85,7 @@ namespace AutoMed_Backend.Controllers
             return Ok(response);
         }
 
-        [HttpGet]
+        [HttpGet("{branchId}")]
         [ActionName("GetTotalSales")]
         public async Task<IActionResult> GetTotalSales(int branchId)
         {
@@ -95,31 +95,44 @@ namespace AutoMed_Backend.Controllers
         }
 
 
-        [HttpGet]
+        [HttpGet("{branchId}")]
         [ActionName("GetSalesReport")]
         public async Task<IActionResult> GetSalesReport(int branchId)
         {
-            var response = AdminLogic.GetSalesReport(branchId);
-            
-            return Ok(response);
+            var response = await AdminLogic.GetSalesReport(branchId);
+
+            if (response.StatusCode.Equals(200))
+            {
+                response.Message = $"Sales read successfully";
+                return Ok(response);
+            }
+            return BadRequest(response);
         }
 
-        [HttpGet]
+        [HttpGet("{branchId}")]
         [ActionName("CheckForExpiry")]
         public async Task<IActionResult> CheckForExpiry(int branchId)
         {
-            var response = AdminLogic.CheckForExpiry(branchId);
-           
-            return Ok(response);
+            var response = await AdminLogic.CheckForExpiry(branchId);
+            if (response.StatusCode.Equals(200))
+            {
+                response.Message = $"Expired medicines..!!";
+                return Ok(response);
+            }
+            return BadRequest(response);
         }
 
-        [HttpGet]
+        [HttpGet("{branchId}")]
         [ActionName("CheckForStockLevel")]
         public async Task<IActionResult> CheckForStockLevel(int branchId)
         {
-            var response = AdminLogic.CheckForStockLevel(branchId);
-
-            return Ok(response);
+            var response = await AdminLogic.CheckForStockLevel(branchId);
+            if (response.StatusCode.Equals(200))
+            {
+                response.Message = $"Low stock medicines..!!";
+                return Ok(response);
+            }
+            return BadRequest(response);
         }
 
     }

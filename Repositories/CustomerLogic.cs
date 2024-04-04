@@ -124,11 +124,12 @@ namespace AutoMed_Backend.Repositories
                         }
 
                         var _tax = total * 15 / 100;
-                        var _net = total + _tax;
+                        var _net = total + _tax + 50;
                         var _afterclaim = _net - claim;
 
                         writer.WriteLine("                                      -----------------------------------------------");
                         writer.WriteLine($"                                                Total       |       {total}       ");
+                        writer.WriteLine($"                                           Delivery Charge  |        + {50}       ");
                         writer.WriteLine($"                                                Tax (15%)   |      + {_tax}       ");
                         writer.WriteLine($"                                               Net Amount = |       {_net}        ");
                         writer.WriteLine($"                                                Med Claim   |      - {claim}      ");

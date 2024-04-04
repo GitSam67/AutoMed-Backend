@@ -1,5 +1,6 @@
 ﻿using AutoMed_Backend.Interfaces;
 using AutoMed_Backend.Models;
+using AutoMed_Backend.SecurityInfra;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Identity.Client;
 using System.Text.Json;
@@ -9,6 +10,7 @@ namespace AutoMed_Backend.Repositories
     public class AdminLogic : IMedicineLogic, IInventoryLogic, ISalesLogic
     {
         StoreDbContext ctx;
+        SecurityManagement security;
 
         CollectionResponse<Medicine> collection = new CollectionResponse<Medicine>();
         CollectionResponse<Orders> orderCollection = new CollectionResponse<Orders>();
@@ -18,9 +20,10 @@ namespace AutoMed_Backend.Repositories
         CollectionResponse<StoreOwner> storeCollection = new CollectionResponse<StoreOwner>();
         SingleObjectResponse<Branch> branchSingle = new SingleObjectResponse<Branch>();
 
-        public AdminLogic(StoreDbContext ctx) 
+        public AdminLogic(StoreDbContext ctx, SecurityManagement security) 
         {
             this.ctx = ctx;
+            this.security = security;
         }
 
 
@@ -158,7 +161,74 @@ namespace AutoMed_Backend.Repositories
                     storeSingle.Message = "StoreOwner added successfully..!!";
                     storeSingle.StatusCode = 200;
 
+                    var user = new AppUser()
+                    {
+                        Name = o.OwnerName,
+                        Email = o.Email
+                    };
+                    security.RegisterUserAsync(user);
+
                     await transaction.CommitAsync();
+                }
+                catch (Exception ex)
+                {
+                    await transaction.RollbackAsync();
+                    storeSingle.Message = ex.Message;
+                    storeSingle.StatusCode = 500;
+                }
+            }
+            return storeSingle;
+        }
+
+        public async Task<SingleObjectResponse<StoreOwner>> EditStoreOwner(int id, StoreOwner o)
+        {
+            using (var transaction = ctx.Database.BeginTransaction())
+            {
+                try
+                {
+                    var record = await ctx.StoreOwners.FindAsync(id);
+                    if (record != null)
+                    {
+                        record.OwnerName = o.OwnerName;
+                        record.Email = o.Email;
+                        record.BranchId = o.BranchId;
+
+                        await ctx.SaveChangesAsync();
+
+                        storeSingle.Record = record;
+                        storeSingle.Message = "Store Owner Record is updated successfully";
+                        storeSingle.StatusCode = 200;
+                        await transaction.CommitAsync();
+
+                    }
+                }
+                catch (Exception ex)
+                {
+                    await transaction.RollbackAsync();
+                    storeSingle.Message = ex.Message;
+                    storeSingle.StatusCode = 500;
+                }
+            }
+            return storeSingle;
+        }
+
+        public async Task<SingleObjectResponse<StoreOwner>> DeleteStoreOwner(int id)
+        {
+            using (var transaction = ctx.Database.BeginTransaction())
+            {
+                try
+                {
+                    var record = await ctx.StoreOwners.FindAsync(id);
+                    if (record != null)
+                    {
+                        var name = record.OwnerName;
+                        ctx.StoreOwners.Remove(record);
+                        await ctx.SaveChangesAsync();
+
+                        storeSingle.Message = $"Store Owner: '{name}' deleted successfully...!!";
+                        storeSingle.StatusCode = 200;
+                        await transaction.CommitAsync();
+                    }
                 }
                 catch (Exception ex)
                 {

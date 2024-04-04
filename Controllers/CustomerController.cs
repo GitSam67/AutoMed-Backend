@@ -32,7 +32,7 @@ namespace AutoMed_Backend.Controllers
             return BadRequest(response);
         }
 
-        [HttpPost]
+        [HttpPost("{branchId}")]
         [ActionName("CheckAvailableMedicines")]
         public async Task<IActionResult> CheckAvailableMedicines(int branchId)
         {
@@ -42,16 +42,17 @@ namespace AutoMed_Backend.Controllers
          
         }
 
-        [HttpPost]
+        [HttpPost("{customerId}")]
         [ActionName("GenerateMedicalBill")]
         public async Task<IActionResult> GenerateMedicalBill(int customerId, Dictionary<string, int> orders, decimal claim, string branchName)
         {
             var response = await CustomerLogic.GenerateMedicalBill(customerId, orders, claim, branchName);
-
+            
             return Ok(response);
+            
         }
 
-        [HttpPost]
+        [HttpPost("{customerId}")]
         [ActionName("ViewMedicalBill")]
         public async Task<IActionResult> ViewMedicalBill(int customerId)
         {

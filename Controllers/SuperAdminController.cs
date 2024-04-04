@@ -26,11 +26,37 @@ namespace AutoMed_Backend.Controllers
 
         [HttpPost]
         [ActionName("AddStoreOwner")]
-        public async Task<IActionResult> AddStoreOwner(AppUser user, string branch)
+        public async Task<IActionResult> AddStoreOwner(StoreOwner o)
         {
-            var response = await security.RegisterUserAsync(user, branch);
+            var response = await AdminLogic.AddStoreOwner(o);
 
-            if (response)
+            if (response.StatusCode.Equals(200))
+            {
+                return Ok(response);
+            }
+            return BadRequest(response);
+        }
+
+        [HttpPut("{id}")]
+        [ActionName("EditStoreOwner")]
+        public async Task<IActionResult> EditStoreOwner(int id, StoreOwner o)
+        {
+            var response = await AdminLogic.EditStoreOwner(id, o);
+
+            if (response.StatusCode.Equals(200))
+            {
+                return Ok(response);
+            }
+            return BadRequest(response);
+        }
+
+        [HttpDelete("{id}")]
+        [ActionName("DeleteStoreOwner")]
+        public async Task<IActionResult> DeleteStoreOwner(int id)
+        {
+            var response = await AdminLogic.DeleteStoreOwner(id);
+
+            if (response.StatusCode.Equals(200))
             {
                 return Ok(response);
             }
@@ -79,7 +105,7 @@ namespace AutoMed_Backend.Controllers
             return BadRequest(response);
         }
 
-        [HttpPut]
+        [HttpPut("{id}")]
         [ActionName("UpdateMedicine")]
         public async Task<IActionResult> UpdateMedicine(int id, Medicine med)
         {
@@ -93,7 +119,7 @@ namespace AutoMed_Backend.Controllers
             return BadRequest(response);
         }
 
-        [HttpDelete]
+        [HttpDelete("{id}")]
         [ActionName("RemoveMedicine")]
         public async Task<IActionResult> RemoveMedicine(int id)
         {
@@ -136,7 +162,7 @@ namespace AutoMed_Backend.Controllers
             return BadRequest(response);
         }
 
-        [HttpGet]
+        [HttpGet("{branchId}")]
         [ActionName("GetSalesReport")]
         public async Task<IActionResult> GetSalesReport(int branchId)
         {
