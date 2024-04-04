@@ -1,5 +1,6 @@
 ﻿using AutoMed_Backend.Models;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
@@ -47,6 +48,20 @@ namespace AutoMed_Backend.SecurityInfra
                         isUserCreated = true;
                         await AssignRoleToUser(new UserRole { Email = user.Email, RoleName = user.Role });
 
+                        if (user.Role.Equals("StoreOwner")) 
+                        {
+                            var branchDb = await ctx.Branches.ToListAsync();
+                            var id = (from b in branchDb where b.BranchName.Equals(branch) select b.BranchId).FirstOrDefault();
+                            var s = new StoreOwner()
+                            {
+                                OwnerName = user.Name,
+                                Email = user.Email,
+                                BranchId = id
+                            };
+
+                            await ctx.StoreOwners.AddAsync(s);
+                            await ctx.SaveChangesAsync();
+                        }
                     }
                 }
                 else

@@ -12,8 +12,10 @@ namespace AutoMed_Backend.Repositories
 
         CollectionResponse<Medicine> collection = new CollectionResponse<Medicine>();
         CollectionResponse<Orders> orderCollection = new CollectionResponse<Orders>();
+        CollectionResponse<Branch> branchCollection = new CollectionResponse<Branch>();
         SingleObjectResponse<Medicine> single = new SingleObjectResponse<Medicine>();
         SingleObjectResponse<StoreOwner> storeSingle = new SingleObjectResponse<StoreOwner>();
+        CollectionResponse<StoreOwner> storeCollection = new CollectionResponse<StoreOwner>();
         SingleObjectResponse<Branch> branchSingle = new SingleObjectResponse<Branch>();
 
         public AdminLogic(StoreDbContext ctx) 
@@ -343,6 +345,42 @@ namespace AutoMed_Backend.Repositories
             return bal.TotalSales;
         }
 
+        public async Task<CollectionResponse<Branch>> GetBranches()
+        {
+            try
+            {
+                var _result = await ctx.Branches.ToListAsync();
+                branchCollection.Records = _result;
+                branchCollection.Message = "Branches Read successfully..!!";
+                branchCollection.StatusCode = 200;
+            }
+            catch (Exception ex)
+            {
+                branchCollection.Message = ex.Message;
+                branchCollection.StatusCode = 500;
+            }
+
+            return branchCollection;
+        }
+
+        public async Task<CollectionResponse<StoreOwner>> GetStoreOwners()
+        {
+            try
+            {
+                var _result = await ctx.StoreOwners.ToListAsync();
+                storeCollection.Records = _result;
+                storeCollection.Message = "Store Owners Read successfully..!!";
+                storeCollection.StatusCode = 200;
+            }
+            catch (Exception ex)
+            {
+                storeCollection.Message = ex.Message;
+                storeCollection.StatusCode = 500;
+            }
+
+            return storeCollection;
+        }
+
 
         public async Task<bool> CreateSalesReport(Customer c, Dictionary<string, int> orders, decimal bill, int branchId)
         {
@@ -397,11 +435,13 @@ namespace AutoMed_Backend.Repositories
                 {
                     orderCollection.Records = await ctx.Orders.ToListAsync();
                 }
+                orderCollection.Message = "Sales Read successfully..!!";
                 orderCollection.StatusCode = 200;
             
             }
             catch (Exception ex)
             {
+                orderCollection.Message = ex.Message;
                 orderCollection.StatusCode = 500;
                 throw ex;
             }

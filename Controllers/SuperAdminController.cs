@@ -26,13 +26,26 @@ namespace AutoMed_Backend.Controllers
 
         [HttpPost]
         [ActionName("AddStoreOwner")]
-        public async Task<IActionResult> AddStoreOwner(StoreOwner o)
+        public async Task<IActionResult> AddStoreOwner(AppUser user, string branch)
         {
-            var response = await AdminLogic.AddStoreOwner(o);
+            var response = await security.RegisterUserAsync(user, branch);
+
+            if (response)
+            {
+                return Ok(response);
+            }
+            return BadRequest(response);
+        }
+
+        [HttpGet]
+        [ActionName("GetStoreOwners")]
+        public async Task<IActionResult> GetStoreOwners()
+        {
+            var response = await AdminLogic.GetStoreOwners();
 
             if (response.StatusCode.Equals(200))
             {
-                response.Message = $"StoreOwner {o.OwnerName} added successfully";
+                response.Message = $"StoreOwners read successfully";
                 return Ok(response);
             }
             return BadRequest(response);
@@ -110,18 +123,31 @@ namespace AutoMed_Backend.Controllers
         }
 
         [HttpGet]
+        [ActionName("GetBranches")]
+        public async Task<IActionResult> GetBranches()
+        {
+            var response = await AdminLogic.GetBranches();
+
+            if (response.StatusCode.Equals(200))
+            {
+                response.Message = $"Branches read successfully";
+                return Ok(response);
+            }
+            return BadRequest(response);
+        }
+
+        [HttpGet]
         [ActionName("GetSalesReport")]
         public async Task<IActionResult> GetSalesReport(int branchId)
         {
-            var response = AdminLogic.GetSalesReport(branchId);
+            var response = await AdminLogic.GetSalesReport(branchId);
 
-            //if (response.StatusCode.Equals(200))
-            //{
-            //    response.Message = $"Medicine read successfully";
-            //    return Ok(response);
-            //}
-            //return BadRequest(response);
-            return Ok(response);
+            if (response.StatusCode.Equals(200))
+            {
+                response.Message = $"Sales read successfully";
+                return Ok(response);
+            }
+            return BadRequest(response);
         }
 
         //[HttpPost]

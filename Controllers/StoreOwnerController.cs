@@ -1,5 +1,6 @@
 ﻿using AutoMed_Backend.Models;
 using AutoMed_Backend.Repositories;
+using AutoMed_Backend.SecurityInfra;
 using Azure;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
@@ -11,24 +12,25 @@ namespace AutoMed_Backend.Controllers
     [ApiController]
     public class StoreOwnerController : ControllerBase
     {
+        SecurityManagement security;
         AdminLogic AdminLogic;
         CustomerLogic CustomerLogic;
 
-        public StoreOwnerController(AdminLogic adminLogic, CustomerLogic customerLogic) 
+        public StoreOwnerController(AdminLogic adminLogic, CustomerLogic customerLogic, SecurityManagement security) 
         {
             this.AdminLogic = adminLogic; 
             this.CustomerLogic = customerLogic;
+            this.security = security;
         }
 
         [HttpPost]
-        [ActionName("AddCustomer")]
-        public async Task<IActionResult> AddCustomer(Customer c)
+        [ActionName("RegisterCustomer")]
+        public async Task<IActionResult> RegisterCustomer(AppUser user, string branch)
         {
-            var response = await CustomerLogic.AddCustomer(c);
+            var response = await security.RegisterUserAsync(user, branch);
 
-            if (response.StatusCode.Equals(200))
+            if (response)
             {
-                response.Message = $"Customer {c.CustomerName} added successfully";
                 return Ok(response);
             }
             return BadRequest(response);
