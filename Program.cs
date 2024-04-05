@@ -27,7 +27,7 @@ IServiceProvider serviceProvider = builder.Services.BuildServiceProvider();
 await SuperAdminAssign.CreateApplicationAdministrator(serviceProvider);
 
 
-builder.Services.AddTransient<SecurityManagement>();
+builder.Services.AddScoped<SecurityManagement>();
 builder.Services.AddScoped<AdminLogic>();
 builder.Services.AddScoped<CustomerLogic>();
 
@@ -47,6 +47,9 @@ builder.Services.AddCors(options =>
         policy.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader();
     });
 });
+
+builder.Services.AddAuthentication();
+builder.Services.AddAuthorization();
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();

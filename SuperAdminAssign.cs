@@ -21,14 +21,14 @@ namespace AutoMed_Backend
                     result = await roleManager.CreateAsync(new IdentityRole("SuperAdmin"));
                 }
 
-                var user = await userManager.FindByEmailAsync("admin@gmail.com");
+                var user = await userManager.FindByEmailAsync("admin67@gmail.com");
 
                 if (user == null)
                 {
                     var defaultUser = new IdentityUser()
                     {
-                        UserName = "AdminBhai",
-                        Email = "admin@gmail.com"
+                        UserName = "admin67@gmail.com",
+                        Email = "admin67@gmail.com"
                     };
 
                     var regUser = await userManager.CreateAsync(defaultUser, "Admin@67");

@@ -37,7 +37,7 @@ namespace AutoMed_Backend.SecurityInfra
 
                 IdentityUser newUser = new IdentityUser()
                 {
-                    UserName = user.Name,
+                    UserName = user.Email,
                     Email = user.Email
                 };
 
@@ -76,7 +76,7 @@ namespace AutoMed_Backend.SecurityInfra
                     throw new Exception($"User with Email: '{user.Email}' not found");
 
                 // 2. Authenticate the User
-                var result = await SignInManager.PasswordSignInAsync(user.Email, user.Password, false, lockoutOnFailure: true);
+                var result=await SignInManager.PasswordSignInAsync(user.Email.Trim(), user.Password.Trim(), false, lockoutOnFailure: true);
                 if (result.Succeeded)
                 {
                     var secretKey = Convert.FromBase64String(config["JWTCoreSettings:SecretKey"]);
