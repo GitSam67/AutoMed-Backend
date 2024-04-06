@@ -10,6 +10,7 @@ namespace AutoMed_Backend.Controllers
 {
     [Route("api/[controller]/[action]")]
     [ApiController]
+    //[Authorize]
     public class StoreOwnerController : ControllerBase
     {
         SecurityManagement security;
@@ -52,7 +53,7 @@ namespace AutoMed_Backend.Controllers
 
         [HttpPut("{branchId}")]
         [ActionName("RemoveStock")]
-        public async Task<IActionResult> RemoveStock(Dictionary<string, int> orders, int branchId)
+        public async Task<IActionResult> RemoveStock(List<string> orders, int branchId)
         {
             var response = await AdminLogic.RemoveStock(orders, branchId);
             if (response.StatusCode.Equals(200))
@@ -116,7 +117,7 @@ namespace AutoMed_Backend.Controllers
             var response = await AdminLogic.CheckForExpiry(branchId);
             if (response.StatusCode.Equals(200))
             {
-                response.Message = $"Expired medicines..!!";
+                response.Message = $"Expiring medicines..!!";
                 return Ok(response);
             }
             return BadRequest(response);

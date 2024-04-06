@@ -62,7 +62,10 @@ namespace AutoMed_Backend.Repositories
                         var result = await ctx.Medicines.AddAsync(med);
                         await ctx.SaveChangesAsync();
 
-                        foreach (var branchId in new[] { 1, 2, 3, 4, 5 })
+                        var branches = await ctx.Branches.ToListAsync();
+                        var branchIds = (from b in branches select b.BranchId).ToList();
+
+                        foreach (var branchId in branchIds)
                         {
                             ctx.Inventory.Add(new Inventory() { MedicineId = med.MedicineId, Quantity = 0, BranchId = branchId });
                         }
@@ -154,21 +157,35 @@ namespace AutoMed_Backend.Repositories
             {
                 try
                 {
-                    var _result = await ctx.StoreOwners.AddAsync(o);
-                    await ctx.SaveChangesAsync();
-
-                    storeSingle.Record = _result.Entity;
-                    storeSingle.Message = "StoreOwner added successfully..!!";
-                    storeSingle.StatusCode = 200;
-
-                    var user = new AppUser()
+                    var record = await ctx.StoreOwners.ToListAsync();
+                    var isExisting = (from st in record where st.Email.Equals(o.Email) select true).FirstOrDefault();
+                    if (isExisting)
                     {
-                        Name = o.OwnerName,
-                        Email = o.Email
-                    };
-                    security.RegisterUserAsync(user);
+                        storeSingle.Message = $"StoreOwner with email:'{o.Email}' already exists..!!";
+                        storeSingle.StatusCode = 400;
+                    }
+                    else
+                    {
+                        var _result = await ctx.StoreOwners.AddAsync(o);
+                        await ctx.SaveChangesAsync();
 
-                    await transaction.CommitAsync();
+                        storeSingle.Record = _result.Entity;
+                        storeSingle.Message = "StoreOwner added successfully..!!";
+                        storeSingle.StatusCode = 200;
+
+                        var user = new AppUser()
+                        {
+                            Name = o.OwnerName,
+                            Email = o.Email,
+                            Role = "StoreOwner",
+                            Password = $"{o.OwnerName}@67",
+                            ConfirmPassword = $"{o.OwnerName}@67"
+                        };
+
+                        await security.RegisterUserAsync(user);
+
+                        await transaction.CommitAsync();
+                    }
                 }
                 catch (Exception ex)
                 {
@@ -250,6 +267,15 @@ namespace AutoMed_Backend.Repositories
                     var _result = await ctx.Branches.AddAsync(b);
                     await ctx.SaveChangesAsync();
 
+                    var meds = await ctx.Medicines.ToListAsync();
+                    Inventory inv = new Inventory();
+
+                    foreach (var m in meds)
+                    {
+                        ctx.Inventory.Add(new Inventory() { MedicineId = m.MedicineId, Quantity = 0, BranchId = b.BranchId });
+                    }
+                    await ctx.SaveChangesAsync();
+                    
                     branchSingle.Record = _result.Entity;
                     branchSingle.Message = "Branch added successfully..!!";
                     branchSingle.StatusCode = 200;
@@ -266,6 +292,67 @@ namespace AutoMed_Backend.Repositories
             return branchSingle;
         }
 
+        public async Task<SingleObjectResponse<Branch>> UpdateBranch(int id, Branch br)
+        {
+            using (var transaction = ctx.Database.BeginTransaction())
+            {
+                try
+                {
+                    var record = await ctx.Branches.FindAsync(id);
+                    if (record != null)
+                    {
+                        record.BranchName = br.BranchName;
+                        record.Address = br.Address;
+
+                        await ctx.SaveChangesAsync();
+
+                        branchSingle.Record = record;
+                        branchSingle.Message = "Branch Record is updated successfully";
+                        branchSingle.StatusCode = 200;
+                        await transaction.CommitAsync();
+
+                    }
+                }
+                catch (Exception ex)
+                {
+                    await transaction.RollbackAsync();
+                    branchSingle.Message = ex.Message;
+                    branchSingle.StatusCode = 500;
+                }
+            }
+            return branchSingle;
+        }
+
+        public async Task<SingleObjectResponse<Branch>> DeleteBranch(int id)
+        {
+            using (var transaction = ctx.Database.BeginTransaction())
+            {
+                try
+                {
+                    var record = await ctx.Branches.FindAsync(id);
+                    if (record != null)
+                    {
+                        var name = record.BranchName;
+                        ctx.Branches.Remove(record);
+                        await ctx.SaveChangesAsync();
+
+                        branchSingle.Message = $"Branch: '{name}' deleted successfully...!!";
+                        branchSingle.StatusCode = 200;
+                        await transaction.CommitAsync();
+
+                    }
+                }
+                catch (Exception ex)
+                {
+                    await transaction.RollbackAsync();
+                    branchSingle.Message = ex.Message;
+                    branchSingle.StatusCode = 500;
+                }
+            }
+            return branchSingle;
+        }
+
+
         public async Task<SingleObjectResponse<Medicine>> PlaceOrder(Dictionary<string, int> orders, int branchId)
         {
             using (var transaction = ctx.Database.BeginTransaction())
@@ -279,21 +366,31 @@ namespace AutoMed_Backend.Repositories
                     foreach (var item in orders)
                     {
 
-                        var med = from m in medicine where m.Name.ToLower() == item.Key.ToLower() select new { id = m.MedicineId, price = m.UnitPrice };
-                        
+                        var med = (from m in medicine where m.Name.ToLower() == item.Key.ToLower() select m).ToList();
+
                         foreach (var m in med)
                         {
-                            var id = (from i in inventory where i.BranchId.Equals(branchId) && i.MedicineId.Equals(m.id) select i.InventoryId).FirstOrDefault();
+                            var id = (from i in inventory where i.BranchId.Equals(branchId) && i.MedicineId.Equals(m.MedicineId) select i.InventoryId).FirstOrDefault();
                             var bal = cashbalance.Where(c => c.BranchId.Equals(branchId)).FirstOrDefault();
-
+                            
                             var record = await ctx.Inventory.FindAsync(id);
                             if (record != null)
                             {
-                                record.Quantity += item.Value;
-                                bal.Balance -= (m.price - m.price / 2) * item.Value;
+                                //var medRecord = await ctx.Medicines.FindAsync(m.MedicineId);
+                                //medRecord.Name = m.Name;
+                                //medRecord.UnitPrice = m.UnitPrice;
+                                //medRecord.BatchNumber = m.BatchNumber;
+                                //medRecord.Manufacturer = m.Manufacturer;
+                                //medRecord.Category = m.Category;
+                                //medRecord.ExpiryDate = DateTime.Now.AddMonths(12);
+                                //await ctx.SaveChangesAsync();
 
-                                Console.WriteLine("\nOrder placed successfully..!!");
+                                record.Quantity += item.Value;
                                 await ctx.SaveChangesAsync();
+
+                                bal.Balance -= (m.UnitPrice - m.UnitPrice / 2) * item.Value;
+                                await ctx.SaveChangesAsync();
+                                Console.WriteLine("\nOrder placed successfully..!!");
                                 await transaction.CommitAsync();
 
                                 single.Message = $"Order placed successfully...!!";
@@ -323,7 +420,7 @@ namespace AutoMed_Backend.Repositories
             return single;
         }
 
-        public async Task<SingleObjectResponse<Medicine>> RemoveStock(Dictionary<string, int> items, int branchId)
+        public async Task<SingleObjectResponse<Medicine>> RemoveStock(List<string> items, int branchId)
         {
             using (var transaction = ctx.Database.BeginTransaction())
             {
@@ -335,7 +432,7 @@ namespace AutoMed_Backend.Repositories
                     foreach (var item in items)
                     {
 
-                        var med = from m in medicine where m.Name.ToLower() == item.Key.ToLower() select new { id = m.MedicineId, price = m.UnitPrice };
+                        var med = from m in medicine where m.Name.ToLower() == item.ToLower() select new { id = m.MedicineId, price = m.UnitPrice };
 
                         foreach (var m in med)
                         {
@@ -362,7 +459,7 @@ namespace AutoMed_Backend.Repositories
                         }
                         if (!flag)
                         {
-                            Console.WriteLine($"\nNo medicine with name: '{item.Key}' exists...!! Try again.");
+                            Console.WriteLine($"\nNo medicine with name: '{item}' exists...!! Try again.");
                         }
                     }
 
@@ -452,7 +549,7 @@ namespace AutoMed_Backend.Repositories
         }
 
 
-        public async Task<bool> CreateSalesReport(Customer c, Dictionary<string, int> orders, decimal bill, int branchId)
+        public async Task<bool> CreateSalesReportAsync(Customer c, Dictionary<string, int> orders, decimal bill, int branchId)
         {
             var isCreated = false;
             using (var transaction = ctx.Database.BeginTransaction())
@@ -460,7 +557,7 @@ namespace AutoMed_Backend.Repositories
                 try
                 {
                     Orders sales = new Orders();
-                    var _med = ctx.Medicines.ToList();
+                    var _med = await ctx.Medicines.ToListAsync();
 
                     sales.CustomerId = c.CustomerId;
                     sales.PurchaseTime = DateTime.Now.Date;
@@ -478,7 +575,7 @@ namespace AutoMed_Backend.Repositories
                     sales.TotalBill = bill;
                     sales.BranchId = branchId;
 
-                    ctx.Orders.Add(sales);
+                    await ctx.Orders.AddAsync(sales);
                     await ctx.SaveChangesAsync();
                     await transaction.CommitAsync();
                     isCreated = true;
@@ -612,8 +709,11 @@ namespace AutoMed_Backend.Repositories
                 var _med = await ctx.Medicines.ToListAsync();
                 foreach (var m in _med)
                 {
-                    var x = (from i in _inv where i.InventoryId == m.MedicineId && m.ExpiryDate <= DateTime.Now.AddDays(10) select m).FirstOrDefault();
-                    result.Add(x);
+                    var x = (from i in _inv where i.MedicineId == m.MedicineId && m.ExpiryDate <= DateTime.Now.AddDays(10) select m).FirstOrDefault();
+                    if (x != null)
+                    {
+                        result.Add(x);
+                    }
                 }
 
                 collection.Records = result;
@@ -637,8 +737,11 @@ namespace AutoMed_Backend.Repositories
                 var _med = await ctx.Medicines.ToListAsync();
                 foreach (var m in _med)
                 {
-                    var x = (from i in _inv where i.InventoryId == m.MedicineId && i.Quantity <= 5 select m).FirstOrDefault();
-                    result.Add(x);
+                    var x = (from i in _inv where i.MedicineId == m.MedicineId && i.Quantity <= 5 select m).FirstOrDefault();
+                    if (x != null)
+                    {
+                        result.Add(x);
+                    }
                 }
 
                 collection.Records = result;

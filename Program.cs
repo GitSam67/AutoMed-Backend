@@ -4,7 +4,10 @@ using AutoMed_Backend.Repositories;
 using AutoMed_Backend.SecurityInfra;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
 using Microsoft.Extensions.Configuration;
+using Microsoft.OpenApi.Models;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -48,11 +51,63 @@ builder.Services.AddCors(options =>
     });
 });
 
-builder.Services.AddAuthentication();
+byte[] secretKey = Convert.FromBase64String(builder.Configuration["JWTCoreSettings:SecretKey"]);
+
+builder.Services.AddAuthentication(options =>
+{
+    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme; // Header Requirements
+    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme; // Use the JWT Bearer as a default scheme for the API so that the client MUST send the Bearer token in HTTP Header for Each Request
+})
+    // and validate the token for completing Authentication and Authorization
+    .AddJwtBearer(token =>
+    {
+        // Check if the Https Metadata information is needed
+        token.RequireHttpsMetadata = false;
+        token.SaveToken = true; // Token will be maintained by the server
+        token.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuerSigningKey = true,  // Signature based verification
+            IssuerSigningKey = new SymmetricSecurityKey(secretKey),
+            ValidateIssuer = false,
+            ValidateAudience = false
+        };
+
+    });
+
+
 builder.Services.AddAuthorization();
 
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+
+builder.Services.AddSwaggerGen(options =>
+{
+    options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+    {
+        Description = "JSON Web Token Authorization header using the Bearer scheme",
+        Name = "Authorization",
+        In = ParameterLocation.Header,
+        Type = SecuritySchemeType.Http,
+        Scheme = "bearer"
+    });
+
+
+    options.AddSecurityRequirement(new OpenApiSecurityRequirement()
+    {
+        {
+            new OpenApiSecurityScheme
+            {
+                Reference = new OpenApiReference
+                {
+                    Type = ReferenceType.SecurityScheme,
+                    Id = "Bearer"
+                },
+            },
+            new List<string>()
+        }
+    });
+
+});
+
 
 var app = builder.Build();
 

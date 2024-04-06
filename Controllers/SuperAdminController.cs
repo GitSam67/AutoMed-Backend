@@ -10,6 +10,7 @@ namespace AutoMed_Backend.Controllers
 {
     [Route("api/[controller]/[action]")]
     [ApiController]
+    //[Authorize]
     public class SuperAdminController : ControllerBase
     {
         SecurityManagement security;
@@ -143,6 +144,34 @@ namespace AutoMed_Backend.Controllers
             if (response.StatusCode.Equals(200))
             {
                 response.Message = $"Branch {branch.BranchName} added successfully";
+                return Ok(response);
+            }
+            return BadRequest(response);
+        }
+
+        [HttpPut("{id}")]
+        [ActionName("UpdateBranch")]
+        public async Task<IActionResult> UpdateBranch(int id, Branch branch)
+        {
+            var response = await AdminLogic.UpdateBranch(id, branch);
+
+            if (response.StatusCode.Equals(200))
+            {
+                response.Message = $"Branch {branch.BranchName} updated successfully";
+                return Ok(response);
+            }
+            return BadRequest(response);
+        }
+
+        [HttpDelete("{id}")]
+        [ActionName("DeleteBranch")]
+        public async Task<IActionResult> DeleteBranch(int id)
+        {
+            var response = await AdminLogic.DeleteBranch(id);
+
+            if (response.StatusCode.Equals(200))
+            {
+                response.Message = $"Branch deleted successfully";
                 return Ok(response);
             }
             return BadRequest(response);

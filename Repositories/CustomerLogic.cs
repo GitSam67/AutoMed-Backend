@@ -28,15 +28,25 @@ namespace AutoMed_Backend.Repositories
             {
                 try
                 {
-                    var _result = await ctx.Customers.AddAsync(c);
-                    await ctx.SaveChangesAsync();
+                    var record = await ctx.Customers.ToListAsync();
+                    var isExisting = (from cust in record where cust.Email.Equals(c.Email) select true).FirstOrDefault();
+                    if (isExisting)
+                    {
+                        single.Message = $"Customer with email:'{c.Email}' already exists..!!";
+                        single.StatusCode = 400;
+                    }
+                    else
+                    {
+                        var _result = await ctx.Customers.AddAsync(c);
+                        await ctx.SaveChangesAsync();
 
-                    single.Record = _result.Entity;
-                    single.Message = "Customer added successfully..!!";
-                    single.StatusCode = 200;
+                        single.Record = _result.Entity;
+                        single.Message = "Customer added successfully..!!";
+                        single.StatusCode = 200;
 
-                    await transaction.CommitAsync();
-                    Console.WriteLine("\n\nYour details saved successfully...Please wait a moment your bill is being generated\n.");
+                        await transaction.CommitAsync();
+                        Console.WriteLine("\n\nYour details saved successfully...Please wait a moment your bill is being generated\n.");
+                    }
                 }
                 catch (Exception ex)
                 {
@@ -66,7 +76,7 @@ namespace AutoMed_Backend.Repositories
             return result;
         }
 
-        public async Task<decimal> GenerateMedicalBill(int customerId, Dictionary<string, int> orders, decimal claim, string branchName)
+        public async Task<decimal> GenerateMedicalBill(int customerId, Dictionary<string, int> orders, decimal claim, int branchId)
         {
             using (var transaction = ctx.Database.BeginTransaction())
             {
@@ -78,7 +88,7 @@ namespace AutoMed_Backend.Repositories
                     Random random = new Random();
                     var invoice = random.Next(1000000, 10000000);
 
-                    var medicines = ctx.Medicines.ToList();
+                    var medicines = await ctx.Medicines.ToListAsync();
                     var c = ctx.Customers.Where(c => c.CustomerId.Equals(customerId)).FirstOrDefault();
 
                     string folder = Path.Combine(Directory.GetCurrentDirectory(), "Medical_Bills");
@@ -145,7 +155,7 @@ namespace AutoMed_Backend.Repositories
                     Console.WriteLine($"\n\nYour bill amount of Rs.{bill} is generated.");
                     Console.WriteLine("\nNow, please pay your bill after proper reviewing the invoice sent.\n");
                     
-                    ExecuteOrder(c, orders, bill, branchName);
+                    await ExecuteOrderAsync(c, orders, bill, branchId);
                     
                     return bill;
                 }
@@ -186,57 +196,109 @@ namespace AutoMed_Backend.Repositories
             }
         }
 
-        public async void ExecuteOrder(Customer c, Dictionary<string, int> orders, decimal bill, string branchName)
+        public async Task ExecuteOrderAsync(Customer c, Dictionary<string, int> orders, decimal bill, int branchId)
         {
             using (var transaction = ctx.Database.BeginTransaction())
             {
                 try
                 {
-                    var medicine = ctx.Medicines.ToList();
-                    var inventory = ctx.Inventory.ToList();
-                    var cash = (ctx.CashBalance.ToList()).FirstOrDefault();
-                    var branch = ctx.Branches.Where(b => b.BranchName.ToLower().Equals(branchName.ToLower())).FirstOrDefault();
+                    var medicines = await ctx.Medicines.ToListAsync();
+                    var inventory = await ctx.Inventory.ToListAsync();
+                    var branch = await ctx.Branches.FindAsync(branchId);
 
                     foreach (var order in orders)
                     {
-
-                        // order.key -> Medicine name
-                        // order.value -> qty
-
-                        var med = (from m in medicine where m.Name.ToLower() == order.Key.ToLower() select new { id = m.MedicineId, price = m.UnitPrice }).FirstOrDefault();
-
-                        var id = (from i in inventory where i.MedicineId.Equals(med.id) && i.BranchId.Equals(branch.BranchId) select i.InventoryId).FirstOrDefault();
-                        var record = await ctx.Inventory.FindAsync(id);
-
-                        if (record != null)
+                        var med = medicines.FirstOrDefault(m => m.Name.ToLower() == order.Key.ToLower());
+                        if (med != null)
                         {
-                            record.Quantity -= order.Value;
+                            var inventoryRecord = inventory.FirstOrDefault(i => i.MedicineId == med.MedicineId && i.BranchId == branch.BranchId);
+                            if (inventoryRecord != null)
+                            {
+                                inventoryRecord.Quantity -= order.Value;
+                            }
+                            else
+                            {
+                                Console.WriteLine("\nNo inventory record found..!!");
+                            }
                         }
                         else
                         {
-                            Console.WriteLine("\nNo record found..!!");
+                            Console.WriteLine($"\nNo medicine with name '{order.Key}' found..!!");
                         }
-
                     }
 
                     await ctx.SaveChangesAsync();
 
-                    cash.Balance += bill;
-                    cash.TotalSales += bill;
-                    await ctx.SaveChangesAsync();
-
-                    adminLogic.CreateSalesReport(c, orders, bill, branch.BranchId);
+                    var cash = await ctx.CashBalance.FirstOrDefaultAsync(c => c.BranchId == branchId);
+                    if (cash != null)
+                    {
+                        cash.Balance += bill;
+                        cash.TotalSales += bill;
+                        await ctx.SaveChangesAsync();
+                    }
 
                     await transaction.CommitAsync();
                     Console.WriteLine("\n\nOrder executed successfully..!!");
+
+                    await adminLogic.CreateSalesReportAsync(c, orders, bill, branch.BranchId);
                 }
                 catch (Exception ex)
                 {
                     await transaction.RollbackAsync();
                     Console.WriteLine(ex.Message);
+                    throw;
                 }
             }
         }
+
+        //public async void ExecuteOrder(Customer c, Dictionary<string, int> orders, decimal bill, int branchId)
+        //{
+        //    using (var transaction = ctx.Database.BeginTransaction())
+        //    {
+        //        try
+        //        {
+        //            var medicine = await ctx.Medicines.ToListAsync();
+        //            var inventory = await ctx.Inventory.ToListAsync(); 
+        //            var branch = await ctx.Branches.FindAsync(branchId);
+
+        //            foreach (var order in orders)
+        //            {
+
+        //                var med = (from m in medicine where m.Name.ToLower() == order.Key.ToLower() select new { id = m.MedicineId, price = m.UnitPrice }).FirstOrDefault();
+
+        //                var id = (from i in inventory where i.MedicineId.Equals(med.id) && i.BranchId.Equals(branch.BranchId) select i.InventoryId).FirstOrDefault();
+        //                var record = await ctx.Inventory.FindAsync(id);
+
+        //                if (record != null)
+        //                {
+        //                    record.Quantity -= order.Value;
+        //                }
+        //                else
+        //                {
+        //                    Console.WriteLine("\nNo record found..!!");
+        //                }
+
+        //            }
+
+        //            await ctx.SaveChangesAsync();
+
+        //            var cash = await ctx.CashBalance.Where(c => c.BranchId == branchId).FirstOrDefaultAsync();
+        //            cash.Balance += bill;
+        //            cash.TotalSales += bill;
+        //            await ctx.SaveChangesAsync();
+
+        //            await transaction.CommitAsync();
+        //            Console.WriteLine("\n\nOrder executed successfully..!!");
+
+        //            await adminLogic.CreateSalesReport(c, orders, bill, branch.BranchId);
+        //        }
+        //        catch (Exception ex)
+        //        {
+        //            await transaction.RollbackAsync();
+        //            Console.WriteLine(ex.Message);
+        //        }
+        //    }
+        //}
 
         public decimal GetTotalSales()
         {
@@ -252,7 +314,7 @@ namespace AutoMed_Backend.Repositories
             {
                 try
                 {
-                    var _med = ctx.Medicines.ToList();
+                    var _med = await ctx.Medicines.ToListAsync();
 
                     string folder = Path.Combine(Directory.GetCurrentDirectory(), "Payment_Receipts");
                     if (!Directory.Exists(folder))

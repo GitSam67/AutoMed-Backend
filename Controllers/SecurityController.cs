@@ -62,7 +62,7 @@ namespace AutoMed_Backend.Controllers
         }
 
 
-        [HttpGet]
+        [HttpGet("{token}")]
         [ActionName("GetCurrentUser")]
         public async Task<IActionResult> GetCurrentUserDetail(string token)
         {

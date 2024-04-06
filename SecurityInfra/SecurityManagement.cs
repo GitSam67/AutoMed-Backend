@@ -95,7 +95,7 @@ namespace AutoMed_Backend.SecurityInfra
                         Issuer = null,
                         Audience = null,
                         Subject = new ClaimsIdentity(new List<Claim>() {
-                            new Claim("UserId", idUser.Id),
+                            new Claim("User", user.Email),
                             new Claim("UserRole", roles[0])
                         }),
                         Expires = DateTime.UtcNow.AddMinutes(expiry),
@@ -130,7 +130,7 @@ namespace AutoMed_Backend.SecurityInfra
             return response;
         }
 
-        public async Task<KeyValuePair<object, string>> GetUserFromTokenAsync(string token)
+        public async Task<object> GetUserFromTokenAsync(string token)
         {
             object? user = new object();
 
@@ -138,9 +138,9 @@ namespace AutoMed_Backend.SecurityInfra
 
             var jwtSecurityToken = jwtHandler.ReadJwtToken(token);
 
-            var userId = jwtSecurityToken.Claims.First().Value;
+            var userEmail = jwtSecurityToken.Claims.First().Value;
 
-            var identityUser = await UserManager.FindByIdAsync(userId);
+            var identityUser = await UserManager.FindByEmailAsync(userEmail);
 
             var _userEmail = identityUser.Email;
 
@@ -153,8 +153,8 @@ namespace AutoMed_Backend.SecurityInfra
             {
                 user = ctx.StoreOwners.Where(c => c.Email.Equals(_userEmail)).FirstOrDefault();
             }
-
-            return KeyValuePair.Create(user, _roleName);
+            
+            return user;
         }
 
         public async Task<bool> CreateRoleAsync(RoleInfo role)
