@@ -1,6 +1,7 @@
 ﻿using AutoMed_Backend.Interfaces;
 using AutoMed_Backend.Models;
 using AutoMed_Backend.SecurityInfra;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Identity.Client;
 using System.Text.Json;
@@ -19,6 +20,7 @@ namespace AutoMed_Backend.Repositories
         SingleObjectResponse<StoreOwner> storeSingle = new SingleObjectResponse<StoreOwner>();
         CollectionResponse<StoreOwner> storeCollection = new CollectionResponse<StoreOwner>();
         SingleObjectResponse<Branch> branchSingle = new SingleObjectResponse<Branch>();
+        CollectionResponse<Inventory> invCollection = new CollectionResponse<Inventory>();
 
         public AdminLogic(StoreDbContext ctx, SecurityManagement security) 
         {
@@ -420,7 +422,7 @@ namespace AutoMed_Backend.Repositories
             return single;
         }
 
-        public async Task<SingleObjectResponse<Medicine>> RemoveStock(List<string> items, int branchId)
+        public async Task<SingleObjectResponse<Medicine>> RemoveStock([FromBody] List<string> items, int branchId)
         {
             using (var transaction = ctx.Database.BeginTransaction())
             {
@@ -475,30 +477,23 @@ namespace AutoMed_Backend.Repositories
         }
 
 
-        public async Task<Dictionary<string, int>> GetInventoryDetails(int branchId)
+        public async Task<CollectionResponse<Inventory>> GetInventoryDetails(int branchId)
         {
-           var _result = new Dictionary<string, int>();
             try
             {
                 var inventory = await ctx.Inventory.Where(i => i.BranchId.Equals(branchId)).ToListAsync();
-                var medicines = await ctx.Medicines.ToListAsync();
-
-                foreach (var stock in inventory)
-                {
-                    var med = (from m in medicines where m.MedicineId == stock.MedicineId select m).FirstOrDefault();
-                    //Console.WriteLine($"*  Medicine: {med}, Qty: {stock.Quantity}");
-                    if (med != null)
-                    {
-                        _result.Add(med.Name, stock.Quantity);
-                    }
-                }
+                invCollection.Records = inventory;
+                invCollection.Message = "Inventory details read successfully";
+                invCollection.StatusCode = 200;
             }
             catch (Exception ex)
             {
+                invCollection.Message = "Inventory details fetching failed";
+                invCollection.StatusCode = 500;
                 throw ex;
             }
 
-            return _result;
+            return invCollection;
         }
 
         public decimal GetCashBalance(int branchId)

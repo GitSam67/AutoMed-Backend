@@ -40,7 +40,7 @@ namespace AutoMed_Backend.Controllers
 
         [HttpPost("{branchId}")]
         [ActionName("PlaceOrder")]
-        public async Task<IActionResult> PlaceOrder(Dictionary<string, int> orders, int branchId)
+        public async Task<IActionResult> PlaceOrder([FromBody] Dictionary<string, int> orders, int branchId)
         {
             var response = await AdminLogic.PlaceOrder(orders, branchId);
             if (response.StatusCode.Equals(200))
@@ -70,8 +70,9 @@ namespace AutoMed_Backend.Controllers
         public async Task<IActionResult> GetInventoryStock(int branchId)
         {
             var response = await AdminLogic.GetInventoryDetails(branchId);
-            if (response.Count > 0)
+            if (response.StatusCode.Equals(200))
             {
+                response.Message = $"Inventory details read successfully";
                 return Ok(response);
             }
             return BadRequest(response);
