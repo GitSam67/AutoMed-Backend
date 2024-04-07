@@ -376,14 +376,14 @@ namespace AutoMed_Backend.Repositories
                             var record = await ctx.Inventory.FindAsync(id);
                             if (record != null)
                             {
-                                //var medRecord = await ctx.Medicines.FindAsync(m.MedicineId);
-                                //medRecord.Name = m.Name;
-                                //medRecord.UnitPrice = m.UnitPrice;
-                                //medRecord.BatchNumber = m.BatchNumber;
-                                //medRecord.Manufacturer = m.Manufacturer;
-                                //medRecord.Category = m.Category;
-                                //medRecord.ExpiryDate = DateTime.Now.AddMonths(12);
-                                //await ctx.SaveChangesAsync();
+                                var medRecord = await ctx.Medicines.FindAsync(m.MedicineId);
+                                medRecord.Name = m.Name;
+                                medRecord.UnitPrice = m.UnitPrice;
+                                medRecord.BatchNumber = m.BatchNumber;
+                                medRecord.Manufacturer = m.Manufacturer;
+                                medRecord.Category = m.Category;
+                                medRecord.ExpiryDate = DateTime.Now.AddMonths(12);
+                                await ctx.SaveChangesAsync();
 
                                 record.Quantity += item.Value;
                                 await ctx.SaveChangesAsync();
@@ -558,7 +558,7 @@ namespace AutoMed_Backend.Repositories
                 {
                     Orders sales = new Orders();
                     var _med = await ctx.Medicines.ToListAsync();
-
+                    
                     sales.CustomerId = c.CustomerId;
                     sales.PurchaseTime = DateTime.Now.Date;
 
@@ -569,6 +569,7 @@ namespace AutoMed_Backend.Repositories
                         if (med != null)
                         {
                             sales.Medicines.Add(med);
+                            sales.orders.Add(med.Name);
                         }
                     }
 

@@ -9,6 +9,7 @@ namespace AutoMed_Backend.Models
         public int CustomerId { get; set; }
 
         public ICollection<Medicine> Medicines { get; set; } = new List<Medicine>();
+        public List<string> orders { get; set; } = new List<string>();
 
         public DateTime? PurchaseTime { get; set; }
 

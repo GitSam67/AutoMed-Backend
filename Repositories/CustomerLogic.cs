@@ -78,26 +78,47 @@ namespace AutoMed_Backend.Repositories
 
         public async Task<decimal> GenerateMedicalBill(int customerId, Dictionary<string, int> orders, decimal claim, int branchId)
         {
-            using (var transaction = ctx.Database.BeginTransaction())
+            try
             {
-                try
+                decimal bill = 0;
+                int sr = 1;
+                decimal total = 0;
+                Random random = new Random();
+                var invoice = random.Next(1000000, 10000000);
+
+                var medicines = await ctx.Medicines.ToListAsync();
+                var c = await ctx.Customers.Where(c => c.CustomerId.Equals(customerId)).FirstOrDefaultAsync();
+
+                foreach (var order in orders)
                 {
-                    decimal bill = 0;
-                    int sr = 1;
-                    decimal total = 0;
-                    Random random = new Random();
-                    var invoice = random.Next(1000000, 10000000);
 
-                    var medicines = await ctx.Medicines.ToListAsync();
-                    var c = ctx.Customers.Where(c => c.CustomerId.Equals(customerId)).FirstOrDefault();
+                    var med = (from m in medicines where m.Name.ToLower() == order.Key.ToLower() select m).FirstOrDefault();
 
+                    total += med.UnitPrice * order.Value;
+                }
+
+                var _tax = total * 15 / 100;
+                var _net = total + _tax + 50;
+                var _afterclaim = _net - claim;
+
+                bill = _afterclaim;
+
+                await ExecuteOrderAsync(c, orders, bill, branchId);
+
+                var orderExecuted = await adminLogic.CreateSalesReportAsync(c, orders, bill, branchId);
+                if (orderExecuted)
+                {
+                    var latestOrder = await ctx.Orders.Where(o => o.CustomerId == c.CustomerId)
+                                                      .OrderByDescending(o => o.OrderId)
+                                                      .FirstOrDefaultAsync();
+                    
                     string folder = Path.Combine(Directory.GetCurrentDirectory(), "Medical_Bills");
                     if (!Directory.Exists(folder))
                     {
                         Directory.CreateDirectory(folder);
                     }
 
-                    string filename = $"{c.CustomerName}_0{c.CustomerId}_MedBill.txt";
+                    string filename = $"{c.CustomerName}_0{latestOrder.OrderId}_MedBill.txt";
                     string filepath = Path.Combine(folder, filename);
 
                     using (StreamWriter writer = new StreamWriter(filepath))
@@ -130,12 +151,7 @@ namespace AutoMed_Backend.Repositories
 
                             writer.WriteLine($"  {sr++}    |    {med.Name} - {med.BatchNumber}        |      {order.Value}       |      {med.UnitPrice}        |");
 
-                            total += med.UnitPrice * order.Value;
                         }
-
-                        var _tax = total * 15 / 100;
-                        var _net = total + _tax + 50;
-                        var _afterclaim = _net - claim;
 
                         writer.WriteLine("                                      -----------------------------------------------");
                         writer.WriteLine($"                                                Total       |       {total}       ");
@@ -147,34 +163,28 @@ namespace AutoMed_Backend.Repositories
                         writer.WriteLine($"                                           *  Grand Total   |      ₹{_afterclaim} -/     |");
                         writer.WriteLine("__________________________________________________________________________________________________________________________________________");
 
-                        bill = _afterclaim;
                     }
 
 
-                    await transaction.CommitAsync();
                     Console.WriteLine($"\n\nYour bill amount of Rs.{bill} is generated.");
-                    Console.WriteLine("\nNow, please pay your bill after proper reviewing the invoice sent.\n");
-                    
-                    await ExecuteOrderAsync(c, orders, bill, branchId);
-                    
-                    return bill;
                 }
-                catch (Exception ex)
-                {
-                    await transaction.RollbackAsync();
-                    throw ex;
-                }
+                return bill;
+            }
+            catch (Exception ex)
+            {
+                //await transaction.RollbackAsync();
+                throw ex;
             }
         }
 
-        public void ViewMedicalBill(int customerId)
+        public void ViewMedicalBill(int customerId, int orderId)
         {
             try
             {
                 var c = ctx.Customers.Where(c => c.CustomerId.Equals(customerId)).FirstOrDefault();
 
                 string folder = Path.Combine(Directory.GetCurrentDirectory(), "Medical_Bills");
-                string filename = $"{c.CustomerName}_0{c.CustomerId}_MedBill.txt";
+                string filename = $"{c.CustomerName}_0{orderId}_MedBill.txt";
                 string filepath = Path.Combine(folder, filename);
 
                 if (File.Exists(filepath))
@@ -205,7 +215,7 @@ namespace AutoMed_Backend.Repositories
                     var medicines = await ctx.Medicines.ToListAsync();
                     var inventory = await ctx.Inventory.ToListAsync();
                     var branch = await ctx.Branches.FindAsync(branchId);
-
+                    
                     foreach (var order in orders)
                     {
                         var med = medicines.FirstOrDefault(m => m.Name.ToLower() == order.Key.ToLower());
@@ -240,7 +250,6 @@ namespace AutoMed_Backend.Repositories
                     await transaction.CommitAsync();
                     Console.WriteLine("\n\nOrder executed successfully..!!");
 
-                    await adminLogic.CreateSalesReportAsync(c, orders, bill, branch.BranchId);
                 }
                 catch (Exception ex)
                 {

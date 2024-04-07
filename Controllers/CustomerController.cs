@@ -56,9 +56,9 @@ namespace AutoMed_Backend.Controllers
 
         [HttpPost("{customerId}")]
         [ActionName("ViewMedicalBill")]
-        public async Task<IActionResult> ViewMedicalBill(int customerId)
+        public async Task<IActionResult> ViewMedicalBill(int customerId, int orderId)
         {
-            CustomerLogic.ViewMedicalBill(customerId);
+            CustomerLogic.ViewMedicalBill(customerId, orderId);
             return Ok();
         }
     }
