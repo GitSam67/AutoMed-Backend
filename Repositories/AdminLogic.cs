@@ -14,6 +14,7 @@ namespace AutoMed_Backend.Repositories
         SecurityManagement security;
 
         CollectionResponse<Medicine> collection = new CollectionResponse<Medicine>();
+        SingleObjectResponse<Medicine> singleMed = new SingleObjectResponse<Medicine>();
         CollectionResponse<Orders> orderCollection = new CollectionResponse<Orders>();
         CollectionResponse<Branch> branchCollection = new CollectionResponse<Branch>();
         SingleObjectResponse<Medicine> single = new SingleObjectResponse<Medicine>();
@@ -45,6 +46,25 @@ namespace AutoMed_Backend.Repositories
             }
 
             return collection;
+        }
+
+        public async Task<SingleObjectResponse<Medicine>> GetMedicine(int medId)
+        {
+
+            try
+            {
+                var _result = await ctx.Medicines.Where(m => m.MedicineId == medId).FirstOrDefaultAsync();
+                singleMed.Record = _result;
+                singleMed.Message = "Medicines Read successfully..!!";
+                singleMed.StatusCode = 200;
+            }
+            catch (Exception ex)
+            {
+                singleMed.Message = ex.Message;
+                singleMed.StatusCode = 500;
+            }
+
+            return singleMed;
         }
 
         public async Task<SingleObjectResponse<Medicine>> AddMedicine(Medicine med)
@@ -541,6 +561,24 @@ namespace AutoMed_Backend.Repositories
             }
 
             return storeCollection;
+        }
+
+        public async Task<SingleObjectResponse<StoreOwner>> GetStoreOwner(int ownerId)
+        {
+            try
+            {
+                var _res = await ctx.StoreOwners.Where(s => s.OwnerId == ownerId).FirstOrDefaultAsync();
+                storeSingle.Record = _res;
+                storeSingle.Message = "Store Owners Read successfully..!!";
+                storeSingle.StatusCode = 200;
+            }
+            catch (Exception ex)
+            {
+                storeSingle.Message = ex.Message;
+                storeSingle.StatusCode = 500;
+            }
+
+            return storeSingle;
         }
 
 

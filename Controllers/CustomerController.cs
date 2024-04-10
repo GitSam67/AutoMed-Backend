@@ -8,7 +8,7 @@ namespace AutoMed_Backend.Controllers
 {
     [Route("api/[controller]/[action]")]
     [ApiController]
-    //[Authorize]
+    [Authorize]
     public class CustomerController : ControllerBase
     {
         AdminLogic AdminLogic;
@@ -40,13 +40,18 @@ namespace AutoMed_Backend.Controllers
         {
             var response = await CustomerLogic.CheckAvailability(branchId);
 
-            return Ok(response);
-         
+            if (response.StatusCode.Equals(200))
+            {
+                response.Message = $"Available medicines read successfully..!!";
+                return Ok(response);
+            }
+            return BadRequest(response);
+
         }
 
-        [HttpPost("{customerId}")]
+        [HttpPost("{customerId}/{branchId}/{claim}")]
         [ActionName("GenerateMedicalBill")]
-        public async Task<IActionResult> GenerateMedicalBill(int customerId, Dictionary<string, int> orders, decimal claim, int branchId)
+        public async Task<IActionResult> GenerateMedicalBill(int customerId,[FromBody] Dictionary<string, int> orders, decimal claim, int branchId)
         {
             var response = await CustomerLogic.GenerateMedicalBill(customerId, orders, claim, branchId);
             
@@ -54,7 +59,7 @@ namespace AutoMed_Backend.Controllers
             
         }
 
-        [HttpPost("{customerId}")]
+        [HttpGet("{customerId}/{orderId}")]
         [ActionName("ViewMedicalBill")]
         public async Task<IActionResult> ViewMedicalBill(int customerId, int orderId)
         {

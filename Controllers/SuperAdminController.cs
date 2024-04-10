@@ -10,7 +10,7 @@ namespace AutoMed_Backend.Controllers
 {
     [Route("api/[controller]/[action]")]
     [ApiController]
-    //[Authorize]
+    [Authorize]
     public class SuperAdminController : ControllerBase
     {
         SecurityManagement security;
@@ -78,11 +78,39 @@ namespace AutoMed_Backend.Controllers
             return BadRequest(response);
         }
 
+        [HttpGet("{id}")]
+        [ActionName("GetStoreOwners")]
+        public async Task<IActionResult> GetStoreOwner(int id)
+        {
+            var response = await AdminLogic.GetStoreOwner(id);
+
+            if (response.StatusCode.Equals(200))
+            {
+                response.Message = $"StoreOwner read successfully";
+                return Ok(response);
+            }
+            return BadRequest(response);
+        }
+
         [HttpGet]
         [ActionName("GetMedicine")]
         public async Task<IActionResult> GetMedicine()
         {
             var response = await AdminLogic.GetMedicinesList();
+
+            if (response.StatusCode.Equals(200))
+            {
+                response.Message = $"Medicines read successfully";
+                return Ok(response);
+            }
+            return BadRequest(response);
+        }
+
+        [HttpGet("{id}")]
+        [ActionName("GetMedicine")]
+        public async Task<IActionResult> GetMedicine(int id)
+        {
+            var response = await AdminLogic.GetMedicine(id);
 
             if (response.StatusCode.Equals(200))
             {
