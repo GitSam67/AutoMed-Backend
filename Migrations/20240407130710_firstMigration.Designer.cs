@@ -12,8 +12,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace AutoMed_Backend.Migrations
 {
     [DbContext(typeof(StoreDbContext))]
-    [Migration("20240407071813_first_migrationv2")]
-    partial class first_migrationv2
+    [Migration("20240407130710_firstMigration")]
+    partial class firstMigration
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)

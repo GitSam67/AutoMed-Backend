@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace AutoMed_Backend.Migrations
 {
     /// <inheritdoc />
-    public partial class first_migration : Migration
+    public partial class firstMigration : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -112,6 +112,7 @@ namespace AutoMed_Backend.Migrations
                     OrderId = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
                     CustomerId = table.Column<int>(type: "int", nullable: false),
+                    orders = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     PurchaseTime = table.Column<DateTime>(type: "datetime", nullable: true),
                     TotalBill = table.Column<decimal>(type: "decimal(18,2)", nullable: true),
                     BranchId = table.Column<int>(type: "int", nullable: false)

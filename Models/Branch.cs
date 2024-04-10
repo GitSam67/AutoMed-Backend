@@ -7,8 +7,8 @@ namespace AutoMed_Backend.Models
         [Key]
         public int BranchId { get; set; }
         
-        public string? BranchName { get; set; }
+        public required string? BranchName { get; set; }
 
-        public string? Address { get; set; }
+        public required string? Address { get; set; }
     }
 }

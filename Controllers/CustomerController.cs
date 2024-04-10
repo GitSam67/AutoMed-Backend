@@ -41,12 +41,12 @@ namespace AutoMed_Backend.Controllers
             var response = await CustomerLogic.CheckAvailability(branchId);
 
             return Ok(response);
-         
+
         }
 
         [HttpPost("{customerId}")]
         [ActionName("GenerateMedicalBill")]
-        public async Task<IActionResult> GenerateMedicalBill(int customerId, Dictionary<string, int> orders, decimal claim, int branchId)
+        public async Task<IActionResult> GenerateMedicalBill(int customerId, [FromBody] Dictionary<string, int> orders, decimal claim, int branchId)
         {
             var response = await CustomerLogic.GenerateMedicalBill(customerId, orders, claim, branchId);
             

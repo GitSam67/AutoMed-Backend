@@ -7,17 +7,17 @@ namespace AutoMed_Backend.Models
         [Key]
         public int MedicineId { get; set; }
 
-        public string? Name { get; set; }
+        public required string? Name { get; set; }
 
-        public decimal UnitPrice { get; set; }
+        public required decimal UnitPrice { get; set; }
 
-        public DateTime ExpiryDate { get; set; }
+        public required DateTime ExpiryDate { get; set; }
 
-        public string? BatchNumber { get; set; }
+        public required string? BatchNumber { get; set; }
 
-        public string? Manufacturer { get; set; }
+        public required string? Manufacturer { get; set; }
 
-        public string? Category { get; set; }
+        public required string? Category { get; set; }
 
     }
 }

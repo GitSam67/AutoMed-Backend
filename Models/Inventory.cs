@@ -7,10 +7,10 @@ namespace AutoMed_Backend.Models
         [Key]
         public int InventoryId { get; set; }
 
-        public int MedicineId { get; set; }
+        public required int MedicineId { get; set; }
 
-        public int Quantity { get; set; }
+        public required int Quantity { get; set; }
 
-        public int BranchId { get; set; }
+        public required int BranchId { get; set; }
     }
 }
