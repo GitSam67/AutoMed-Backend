@@ -10,7 +10,7 @@ namespace AutoMed_Backend.Controllers
 {
     [Route("api/[controller]/[action]")]
     [ApiController]
-    //[Authorize]
+    [Authorize]
     public class StoreOwnerController : ControllerBase
     {
         SecurityManagement security;

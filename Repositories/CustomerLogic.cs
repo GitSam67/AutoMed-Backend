@@ -13,6 +13,7 @@ namespace AutoMed_Backend.Repositories
         StoreDbContext ctx;
 
         SingleObjectResponse<Customer> single = new SingleObjectResponse<Customer>();
+        CollectionResponse<Inventory> invCollection = new CollectionResponse<Inventory>();
 
         AdminLogic adminLogic;
 
@@ -58,22 +59,24 @@ namespace AutoMed_Backend.Repositories
             return single;
         }
 
-        public async Task<Dictionary<string, int>> CheckAvailability(int branchId) 
+        public async Task<CollectionResponse<Inventory>> CheckAvailability(int branchId) 
         {
-            var medDb = await ctx.Medicines.ToListAsync();
-            var invDb = await ctx.Inventory.Where(i => i.BranchId.Equals(branchId)).ToListAsync();
-
-            Dictionary<string, int> result = new Dictionary<string, int>();
-            var _inv = await ctx.Inventory.Where(i => i.BranchId.Equals(branchId)).ToListAsync();
-            var _med = await ctx.Medicines.ToListAsync();
-            foreach (var i in _inv)
+            try
             {
-                var x = (from m in _med where i.MedicineId == m.MedicineId select new { Med = m.Name, Qty = i.Quantity}).FirstOrDefault();
-                result.Add(x.Med, x.Qty);
+                var inventory = await ctx.Inventory.Where(i => i.BranchId.Equals(branchId)).ToListAsync();
+                invCollection.Records = inventory;
+                invCollection.Message = "Inventory details read successfully";
+                invCollection.StatusCode = 200;
+            }
+            catch (Exception ex)
+            {
+                invCollection.Message = "Inventory details fetching failed";
+                invCollection.StatusCode = 500;
+                throw ex;
             }
 
+            return invCollection;
 
-            return result;
         }
 
         public async Task<decimal> GenerateMedicalBill(int customerId, Dictionary<string, int> orders, decimal claim, int branchId)

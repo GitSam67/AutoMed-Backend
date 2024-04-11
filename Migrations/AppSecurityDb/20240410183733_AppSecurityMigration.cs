@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace AutoMed_Backend.Migrations.AppSecurityDb
 {
     /// <inheritdoc />
-    public partial class SecurityMigration : Migration
+    public partial class AppSecurityMigration : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)

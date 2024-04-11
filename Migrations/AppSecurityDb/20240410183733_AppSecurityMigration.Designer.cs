@@ -12,8 +12,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace AutoMed_Backend.Migrations.AppSecurityDb
 {
     [DbContext(typeof(AppSecurityDbContext))]
-    [Migration("20240407135544_SecurityMigration")]
-    partial class SecurityMigration
+    [Migration("20240410183733_AppSecurityMigration")]
+    partial class AppSecurityMigration
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)

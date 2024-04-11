@@ -10,7 +10,7 @@ namespace AutoMed_Backend.Controllers
 {
     [Route("api/[controller]/[action]")]
     [ApiController]
-    //[Authorize]
+    [Authorize]
     public class SuperAdminController : ControllerBase
     {
         SecurityManagement security;
@@ -42,6 +42,10 @@ namespace AutoMed_Backend.Controllers
         [ActionName("EditStoreOwner")]
         public async Task<IActionResult> EditStoreOwner(int id, StoreOwner o)
         {
+            if (await CheckIfStoreOwnerExists(id) != true)
+            {
+                return Conflict($"Store of store owner id {id} doesn't exist");
+            }
             var response = await AdminLogic.EditStoreOwner(id, o);
 
             if (response.StatusCode.Equals(200))
@@ -49,6 +53,19 @@ namespace AutoMed_Backend.Controllers
                 return Ok(response);
             }
             return BadRequest(response);
+        }
+
+        private async Task<bool> CheckIfStoreOwnerExists(int id)
+        {
+            bool isExist = false;
+
+            var storeOwner = (await AdminLogic.GetStoreOwner(id));
+
+            if (storeOwner != null)
+            {
+                isExist = true;
+            }
+            return isExist;
         }
 
         [HttpDelete("{id}")]
@@ -78,11 +95,39 @@ namespace AutoMed_Backend.Controllers
             return BadRequest(response);
         }
 
+        [HttpGet("{id}")]
+        [ActionName("GetStoreOwners")]
+        public async Task<IActionResult> GetStoreOwner(int id)
+        {
+            var response = await AdminLogic.GetStoreOwner(id);
+
+            if (response.StatusCode.Equals(200))
+            {
+                response.Message = $"StoreOwner read successfully";
+                return Ok(response);
+            }
+            return BadRequest(response);
+        }
+
         [HttpGet]
         [ActionName("GetMedicine")]
         public async Task<IActionResult> GetMedicine()
         {
             var response = await AdminLogic.GetMedicinesList();
+
+            if (response.StatusCode.Equals(200))
+            {
+                response.Message = $"Medicines read successfully";
+                return Ok(response);
+            }
+            return BadRequest(response);
+        }
+
+        [HttpGet("{id}")]
+        [ActionName("GetMedicine")]
+        public async Task<IActionResult> GetMedicine(int id)
+        {
+            var response = await AdminLogic.GetMedicine(id);
 
             if (response.StatusCode.Equals(200))
             {
