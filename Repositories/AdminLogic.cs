@@ -290,7 +290,7 @@ namespace AutoMed_Backend.Repositories
                     await ctx.SaveChangesAsync();
 
                     var meds = await ctx.Medicines.ToListAsync();
-                    Inventory inv = new Inventory();
+                    Inventory inv = new Inventory() { BranchId = 0, Quantity = 0};
 
                     foreach (var m in meds)
                     {

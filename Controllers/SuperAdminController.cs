@@ -42,6 +42,10 @@ namespace AutoMed_Backend.Controllers
         [ActionName("EditStoreOwner")]
         public async Task<IActionResult> EditStoreOwner(int id, StoreOwner o)
         {
+            if (await CheckIfStoreOwnerExists(id) != true)
+            {
+                return Conflict($"Store of store owner id {id} doesn't exist");
+            }
             var response = await AdminLogic.EditStoreOwner(id, o);
 
             if (response.StatusCode.Equals(200))
@@ -49,6 +53,19 @@ namespace AutoMed_Backend.Controllers
                 return Ok(response);
             }
             return BadRequest(response);
+        }
+
+        private async Task<bool> CheckIfStoreOwnerExists(int id)
+        {
+            bool isExist = false;
+
+            var storeOwner = (await AdminLogic.GetStoreOwner(id));
+
+            if (storeOwner != null)
+            {
+                isExist = true;
+            }
+            return isExist;
         }
 
         [HttpDelete("{id}")]

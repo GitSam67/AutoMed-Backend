@@ -6,9 +6,11 @@ namespace AutoMed_Backend.Models
     {
         [Key]
         public int BranchId { get; set; }
-        
+
+        [Required(ErrorMessage = "Branch name is required")]
         public string? BranchName { get; set; }
 
+        [Required(ErrorMessage = "Address is required")]
         public string? Address { get; set; }
     }
 }

@@ -11,6 +11,7 @@ namespace AutoMed_Backend.Controllers
     [Authorize]
     public class CustomerController : ControllerBase
     {
+
         AdminLogic AdminLogic;
         CustomerLogic CustomerLogic;
 
@@ -38,6 +39,10 @@ namespace AutoMed_Backend.Controllers
         [ActionName("CheckAvailableMedicines")]
         public async Task<IActionResult> CheckAvailableMedicines(int branchId)
         {
+            if (await CheckIfBranchExists(branchId))
+            {
+                return Conflict($"Branch of branch id {branchId} doesn't exist");
+            }
             var response = await CustomerLogic.CheckAvailability(branchId);
 
             if (response.StatusCode.Equals(200))
@@ -51,13 +56,31 @@ namespace AutoMed_Backend.Controllers
 
         [HttpPost("{customerId}/{branchId}/{claim}")]
         [ActionName("GenerateMedicalBill")]
-        public async Task<IActionResult> GenerateMedicalBill(int customerId,[FromBody] Dictionary<string, int> orders, decimal claim, int branchId)
+        public async Task<IActionResult> GenerateMedicalBill(int customerId, Dictionary<string, int> orders, decimal claim, int branchId)
         {
+            if(await CheckIfBranchExists(branchId))
+            {
+                return Conflict($"Branch of branch id {branchId} doesn't exist");
+            }
             var response = await CustomerLogic.GenerateMedicalBill(customerId, orders, claim, branchId);
             
             return Ok(response);
             
         }
+
+        private async Task<bool> CheckIfBranchExists(int branchId)
+        {
+            bool isExist = false;
+
+            var branch = (await AdminLogic.GetBranches()).Records.Where(p => p.BranchId == branchId);
+
+            if (branch != null)
+            {
+                isExist = true;
+            }
+            return isExist;
+        }
+
 
         [HttpGet("{customerId}/{orderId}")]
         [ActionName("ViewMedicalBill")]

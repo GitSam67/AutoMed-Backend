@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.Extensions.Configuration;
 using Microsoft.OpenApi.Models;
+using AutoMed_Backend.CustomMiddleware;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -124,6 +125,8 @@ app.UseCors("cors");
 
 app.UseAuthentication();
 app.UseAuthorization();
+
+app.UseCustomException();
 
 app.MapControllers();
 
