@@ -19,7 +19,7 @@ namespace AutoMed_Backend.Models
         public DateTime ExpiryDate { get; set; }
 
         [Required(ErrorMessage = "Batch number is required")]
-        [NumericNonNegative(ErrorMessage = "Batch number must be numeric and non negative")]
+        //[NumericNonNegative(ErrorMessage = "Batch number must be numeric and non negative")]
         public string? BatchNumber { get; set; }
 
         [Required(ErrorMessage = "Manufacturer is required")]

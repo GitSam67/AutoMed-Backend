@@ -22,7 +22,9 @@ namespace AutoMed_Backend.Models
         public string? BloodGroup { get; set; }
 
         [Required(ErrorMessage = "ContactNo is required")]
-        [NumericNonNegative(ErrorMessage = "Contact Number must be numeric and non negative")]
+        [ContactFormatValidation(ErrorMessage = "Invalid contact number format")]
+
+        //[NumericNonNegative(ErrorMessage = "Contact Number must be numeric and non negative")]
         public string? ContactNo { get; set; }
 
         [Required(ErrorMessage = "Address is required")]

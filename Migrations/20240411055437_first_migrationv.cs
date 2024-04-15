@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace AutoMed_Backend.Migrations
 {
     /// <inheritdoc />
-    public partial class StoreDbMigration : Migration
+    public partial class first_migrationv : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)

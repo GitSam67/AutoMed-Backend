@@ -225,13 +225,14 @@ namespace AutoMed_Backend.Repositories
                         if (med != null)
                         {
                             var inventoryRecord = inventory.FirstOrDefault(i => i.MedicineId == med.MedicineId && i.BranchId == branch.BranchId);
-                            if (inventoryRecord != null)
+                            if (inventoryRecord != null && inventoryRecord.Quantity - order.Value >= 0)
                             {
                                 inventoryRecord.Quantity -= order.Value;
                             }
                             else
                             {
                                 Console.WriteLine("\nNo inventory record found..!!");
+                                throw new Exception("Error occured while executing order..!!");
                             }
                         }
                         else

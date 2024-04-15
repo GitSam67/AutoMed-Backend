@@ -39,7 +39,7 @@ namespace AutoMed_Backend.Controllers
         [ActionName("CheckAvailableMedicines")]
         public async Task<IActionResult> CheckAvailableMedicines(int branchId)
         {
-            if (await CheckIfBranchExists(branchId))
+            if (await CheckIfBranchExists(branchId) != true)
             {
                 return Conflict($"Branch of branch id {branchId} doesn't exist");
             }
@@ -56,9 +56,9 @@ namespace AutoMed_Backend.Controllers
 
         [HttpPost("{customerId}/{branchId}/{claim}")]
         [ActionName("GenerateMedicalBill")]
-        public async Task<IActionResult> GenerateMedicalBill(int customerId, Dictionary<string, int> orders, decimal claim, int branchId)
+        public async Task<IActionResult> GenerateMedicalBill(int customerId,[FromBody] Dictionary<string, int> orders, decimal claim, int branchId)
         {
-            if(await CheckIfBranchExists(branchId))
+            if(await CheckIfBranchExists(branchId) != true)
             {
                 return Conflict($"Branch of branch id {branchId} doesn't exist");
             }
